@@ -181,6 +181,29 @@ export function crearVisor360({ contenedor, onNavegar }) {
   const raycaster = new THREE.Raycaster();
   const cargadorTexturas = new THREE.TextureLoader();
 
+  const FOV_NORMAL = 75;
+  const FOV_CAMINANDO = 45;
+
+  // Anima el FOV de la cámara para simular que uno avanza hacia el punto de
+  // navegación. No hay geometría 3D real para caminar, así que esto es una
+  // ilusión (zoom + fundido), la misma técnica que usan la mayoría de los
+  // tours 360 inmobiliarios reales entre foto y foto.
+  function animarFov(objetivo, duracionMs) {
+    return new Promise((resolve) => {
+      const fovInicial = camera.fov;
+      const inicio = performance.now();
+      function paso(ahora) {
+        const t = Math.min((ahora - inicio) / duracionMs, 1);
+        const suavizado = t * (2 - t);
+        camera.fov = fovInicial + (objetivo - fovInicial) * suavizado;
+        camera.updateProjectionMatrix();
+        if (t < 1) requestAnimationFrame(paso);
+        else resolve();
+      }
+      requestAnimationFrame(paso);
+    });
+  }
+
   function pintarHotspots(hotspots) {
     grupoHotspots.clear();
     hotspots.forEach((h) => {
@@ -197,7 +220,10 @@ export function crearVisor360({ contenedor, onNavegar }) {
     if (escena.id === escenaActualId) return;
     escenaActualId = escena.id;
 
+    const DURACION_PASO = 380;
     overlayFade.style.opacity = '1';
+    animarFov(FOV_CAMINANDO, DURACION_PASO);
+
     setTimeout(() => {
       cargadorTexturas.load(escena.url, (textura) => {
         textura.colorSpace = THREE.SRGBColorSpace;
@@ -205,11 +231,13 @@ export function crearVisor360({ contenedor, onNavegar }) {
         material.color.set(0xffffff);
         material.needsUpdate = true;
         pintarHotspots(hotspotsDeEscena);
+        camera.fov = FOV_NORMAL;
+        camera.updateProjectionMatrix();
         requestAnimationFrame(() => {
           overlayFade.style.opacity = '0';
         });
       });
-    }, 350);
+    }, DURACION_PASO);
   }
 
   renderer.domElement.addEventListener('click', (evento) => {

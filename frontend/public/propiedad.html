@@ -19,6 +19,26 @@
       background: #111;
       position: relative;
     }
+    .controles-caminar {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      gap: 8px;
+      max-width: calc(100% - 140px);
+      overflow-x: auto;
+    }
+    .controles-caminar button {
+      width: auto;
+      white-space: nowrap;
+      padding: 8px 14px;
+      font-size: 0.8rem;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      border-radius: 20px;
+    }
     .nombre-inmobiliaria {
       padding: 10px 16px;
       font-size: 0.8rem;
@@ -88,7 +108,9 @@
     <p class="estado-carga" id="estado-carga" style="padding:32px 16px">Cargando propiedad...</p>
     <div id="contenido" style="display:none">
       <p class="nombre-inmobiliaria" id="nombre-inmobiliaria"></p>
-      <div id="visor-360"></div>
+      <div id="visor-360">
+        <div class="controles-caminar" id="controles-caminar"></div>
+      </div>
       <div class="selector-ambientes" id="selector-ambientes"></div>
 
       <div class="encabezado-propiedad">
@@ -218,6 +240,18 @@
       visor.irAEscena(escena, hotspotsDeEscena);
       document.querySelectorAll('.selector-ambientes button').forEach((b) => {
         b.classList.toggle('activo', Number(b.dataset.escenaId) === escenaId);
+      });
+      pintarControlesCaminar(hotspotsDeEscena);
+    }
+
+    function pintarControlesCaminar(hotspotsDeEscena) {
+      const contenedor = document.getElementById('controles-caminar');
+      const navegables = hotspotsDeEscena.filter((h) => h.escena_destino_id);
+      contenedor.innerHTML = navegables.map((h) => `
+        <button type="button" data-destino-id="${h.escena_destino_id}">→ ${h.etiqueta || 'Seguir'}</button>
+      `).join('');
+      contenedor.querySelectorAll('button').forEach((boton) => {
+        boton.addEventListener('click', () => irAEscena(Number(boton.dataset.destinoId)));
       });
     }
 
