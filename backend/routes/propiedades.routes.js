@@ -3,6 +3,7 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../lib/asyncHandler');
 const { camposFaltantes } = require('../lib/validar');
+const { generarSlug } = require('../lib/slugs');
 
 const router = express.Router();
 router.use(auth);
@@ -11,15 +12,6 @@ const TIPOS = ['casa', 'departamento', 'ph', 'terreno', 'local', 'oficina', 'gal
 const OPERACIONES = ['venta', 'alquiler', 'alquiler_temporal'];
 const MONEDAS = ['ARS', 'USD'];
 const ESTADOS = ['borrador', 'publicada', 'pausada', 'vendida'];
-
-function generarSlug(titulo) {
-  return titulo
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
 
 function validarPropiedad(body) {
   const faltantes = camposFaltantes(body, ['titulo', 'tipo', 'operacion']);

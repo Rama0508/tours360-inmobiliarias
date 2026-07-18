@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registrar mi inmobiliaria — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+</head>
+<body>
+  <div class="pantalla-centrada">
+    <div class="tarjeta" style="max-width:420px">
+      <h1>Registrá tu inmobiliaria</h1>
+      <form id="form-registro">
+        <div class="campo">
+          <label for="nombre_inmobiliaria">Nombre de la inmobiliaria</label>
+          <input type="text" id="nombre_inmobiliaria" required />
+        </div>
+        <div class="campo">
+          <label for="nombre_agente">Tu nombre</label>
+          <input type="text" id="nombre_agente" required />
+        </div>
+        <div class="campo">
+          <label for="email">Email</label>
+          <input type="email" id="email" required autocomplete="username" />
+        </div>
+        <div class="campo">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="campo">
+          <label for="telefono">Teléfono (opcional)</label>
+          <input type="text" id="telefono" />
+        </div>
+        <div class="campo" style="display:flex;align-items:flex-start;gap:8px">
+          <input type="checkbox" id="acepto_terminos" style="width:auto;margin-top:3px" required />
+          <label for="acepto_terminos" style="font-size:0.8rem;font-weight:normal">
+            Acepto los <a href="/terminos.html" target="_blank">términos y condiciones</a>
+          </label>
+        </div>
+        <button type="submit" id="boton-registro">Crear mi cuenta</button>
+        <p class="mensaje-error" id="mensaje-error"></p>
+        <p class="mensaje-exito" id="mensaje-exito"></p>
+      </form>
+      <p style="text-align:center;margin-top:16px;font-size:0.85rem">
+        ¿Ya tenés cuenta? <a href="/login.html">Iniciar sesión</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script>
+    const form = document.getElementById('form-registro');
+    const boton = document.getElementById('boton-registro');
+    const mensajeError = document.getElementById('mensaje-error');
+    const mensajeExito = document.getElementById('mensaje-exito');
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      mensajeError.textContent = '';
+      mensajeExito.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Creando cuenta...';
+
+      try {
+        const cuerpo = {
+          nombre_inmobiliaria: document.getElementById('nombre_inmobiliaria').value.trim(),
+          nombre_agente: document.getElementById('nombre_agente').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value,
+          telefono: document.getElementById('telefono').value.trim(),
+          acepto_terminos: document.getElementById('acepto_terminos').checked,
+        };
+
+        const { token, usuario } = await api.apiFetch('/registro', {
+          method: 'POST',
+          body: JSON.stringify(cuerpo),
+        });
+
+        api.setToken(token);
+        localStorage.setItem('usuario', JSON.stringify(usuario));
+        mensajeExito.textContent = '¡Cuenta creada! Redirigiendo...';
+        window.location.href = '/admin/propiedades.html';
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Crear mi cuenta';
+      }
+    });
+  </script>
+</body>
+</html>
