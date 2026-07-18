@@ -25,6 +25,9 @@ CREATE TABLE inmobiliarias (
   logo_url VARCHAR(500) NULL,
   color_primario VARCHAR(7) NULL, -- ej. #1d4ed8, se usa como acento de marca en la página pública
   activa TINYINT(1) NOT NULL DEFAULT 1,
+  suscripcion_estado ENUM('sin_suscripcion', 'pendiente', 'activa', 'pausada', 'cancelada') NOT NULL DEFAULT 'sin_suscripcion',
+  mp_preapproval_id VARCHAR(100) NULL, -- id de la suscripción en Mercado Pago
+  suscripcion_actualizada_en TIMESTAMP NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

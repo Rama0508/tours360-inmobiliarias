@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facturación — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    .estado-suscripcion { padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .estado-activa { background: #dcfce7; color: #166534; }
+    .estado-pendiente { background: #fef3c7; color: #92400e; }
+    .estado-pausada, .estado-cancelada { background: #fee2e2; color: #991b1b; }
+    .estado-sin_suscripcion { background: #e5e7eb; color: #374151; }
+    .precio-grande { font-size: 1.8rem; font-weight: 700; margin: 12px 0; }
+    .precio-grande span { font-size: 1rem; font-weight: 400; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin">
+    <div class="encabezado-pagina">
+      <h1>Facturación</h1>
+    </div>
+
+    <p class="estado-carga" id="estado-carga">Cargando...</p>
+    <p class="mensaje-exito" id="mensaje-retorno" style="display:none"></p>
+
+    <div class="formulario-propiedad" id="contenido" style="display:none;max-width:420px">
+      <p>Estado de tu suscripción: <span class="estado-suscripcion" id="badge-estado"></span></p>
+      <div class="precio-grande" id="precio-grande"></div>
+      <button type="button" id="boton-suscribirse">Suscribirme con Mercado Pago</button>
+      <p class="mensaje-error" id="mensaje-error"></p>
+      <p id="ayuda-admin" style="font-size:0.8rem;color:#6b7280;margin-top:12px;display:none">
+        Solo un administrador de la inmobiliaria puede gestionar la suscripción.
+      </p>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+    const esAdmin = usuario && usuario.rol === 'admin';
+
+    if (exigirSesion()) {
+      pintarBarraAdmin('facturacion');
+      mostrarMensajeRetorno();
+      cargar();
+    }
+
+    function mostrarMensajeRetorno() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('preapproval_id')) {
+        const mensaje = document.getElementById('mensaje-retorno');
+        mensaje.style.display = 'block';
+        mensaje.textContent = 'Volviste de Mercado Pago. Puede tardar unos segundos en actualizarse el estado.';
+      }
+    }
+
+    async function cargar() {
+      try {
+        const datos = await api.apiFetch('/admin/suscripcion');
+        document.getElementById('estado-carga').style.display = 'none';
+        document.getElementById('contenido').style.display = 'block';
+
+        const badge = document.getElementById('badge-estado');
+        badge.textContent = nombreEstadoSuscripcion(datos.suscripcion_estado);
+        badge.className = `estado-suscripcion estado-${datos.suscripcion_estado}`;
+
+        document.getElementById('precio-grande').innerHTML =
+          `$${datos.precio_mensual.toLocaleString('es-AR')} <span>${datos.moneda} / mes</span>`;
+
+        const boton = document.getElementById('boton-suscribirse');
+        if (datos.suscripcion_estado === 'activa') {
+          boton.textContent = 'Ya tenés una suscripción activa';
+          boton.disabled = true;
+        }
+        if (!esAdmin) {
+          boton.disabled = true;
+          document.getElementById('ayuda-admin').style.display = 'block';
+        }
+      } catch (error) {
+        document.getElementById('estado-carga').textContent = error.message;
+      }
+    }
+
+    function nombreEstadoSuscripcion(estado) {
+      const nombres = {
+        sin_suscripcion: 'Sin suscripción',
+        pendiente: 'Pendiente de pago',
+        activa: 'Activa',
+        pausada: 'Pausada',
+        cancelada: 'Cancelada',
+      };
+      return nombres[estado] || estado;
+    }
+
+    document.getElementById('boton-suscribirse').addEventListener('click', async () => {
+      const mensajeError = document.getElementById('mensaje-error');
+      const boton = document.getElementById('boton-suscribirse');
+      mensajeError.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Redirigiendo a Mercado Pago...';
+
+      try {
+        const { url_pago } = await api.apiFetch('/admin/suscripcion/crear', { method: 'POST' });
+        window.location.href = url_pago;
+      } catch (error) {
+        mensajeError.textContent = error.message;
+        boton.disabled = false;
+        boton.textContent = 'Suscribirme con Mercado Pago';
+      }
+    });
+  </script>
+</body>
+</html>
