@@ -5,6 +5,7 @@ const storage = require('../lib/storage');
 const { camposFaltantes } = require('../lib/validar');
 const asyncHandler = require('../lib/asyncHandler');
 const { buscarPropiedadPublicada } = require('../lib/propiedadPublica');
+const { enviarEmail } = require('../lib/email');
 
 const router = express.Router();
 
@@ -64,6 +65,33 @@ router.post('/:slug/propiedades/:propiedadSlug/leads', resolveTenant, asyncHandl
     'INSERT INTO leads (propiedad_id, inmobiliaria_id, nombre, telefono, email, mensaje) VALUES (?, ?, ?, ?, ?, ?)',
     [propiedad.id, req.inmobiliaria.id, nombre, telefono, email || null, mensaje || null]
   );
+
+  // Si falla el email no arruinamos la respuesta al comprador: el lead ya
+  // quedó guardado, que es lo que importa. El agente igual lo va a ver en
+  // el panel de leads.
+  try {
+    const [agentes] = await db.query('SELECT nombre, email FROM usuarios WHERE id = ?', [propiedad.agente_id]);
+    const agente = agentes[0];
+    if (agente) {
+      const urlPanelLeads = `${req.protocol}://${req.get('host')}/admin/leads.html`;
+      await enviarEmail({
+        para: agente.email,
+        asunto: `Nueva consulta: ${propiedad.titulo}`,
+        html: `
+          <p>Hola ${agente.nombre},</p>
+          <p><strong>${nombre}</strong> dejó una consulta sobre <strong>${propiedad.titulo}</strong>:</p>
+          <ul>
+            <li>Teléfono: ${telefono}</li>
+            ${email ? `<li>Email: ${email}</li>` : ''}
+            ${mensaje ? `<li>Mensaje: ${mensaje}</li>` : ''}
+          </ul>
+          <p><a href="${urlPanelLeads}">Ver en el panel de leads</a></p>
+        `,
+      });
+    }
+  } catch (error) {
+    console.error('No se pudo enviar la notificación de lead nuevo:', error.message);
+  }
 
   res.status(201).json({ mensaje: 'Gracias, ya recibimos tu consulta. Te van a contactar a la brevedad.' });
 }));
