@@ -22,7 +22,10 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
 
   const [filas] = await db.query(
-    'SELECT id, inmobiliaria_id, nombre, email, password_hash, rol FROM usuarios WHERE email = ? AND activo = 1',
+    `SELECT u.id, u.inmobiliaria_id, u.nombre, u.email, u.password_hash, u.rol
+     FROM usuarios u
+     JOIN inmobiliarias i ON u.inmobiliaria_id = i.id
+     WHERE u.email = ? AND u.activo = 1 AND i.activa = 1`,
     [email]
   );
   const usuario = filas[0];

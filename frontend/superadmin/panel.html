@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inmobiliarias — Panel de superadmin</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid #f3f4f6; }
+    th { background: #f9fafb; font-weight: 600; }
+    .badge { padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; }
+    .badge-activa { background: #dcfce7; color: #166534; }
+    .badge-inactiva { background: #fee2e2; color: #991b1b; }
+    td button { width: auto; padding: 6px 12px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div style="padding:12px 24px;background:#111827;color:#fff;display:flex;justify-content:space-between;align-items:center">
+    <strong>Tours 360 — Superadmin</strong>
+    <button type="button" onclick="cerrarSesionSuperadmin()" style="width:auto;padding:6px 14px;background:#374151">Salir</button>
+  </div>
+
+  <div class="contenido-admin" style="max-width:1100px">
+    <div class="encabezado-pagina">
+      <h1>Inmobiliarias</h1>
+    </div>
+
+    <div id="contenedor-tabla">
+      <p class="estado-carga">Cargando...</p>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('superadmin_token');
+    if (!token) window.location.href = '/superadmin/login.html';
+
+    function cerrarSesionSuperadmin() {
+      localStorage.removeItem('superadmin_token');
+      window.location.href = '/superadmin/login.html';
+    }
+
+    async function llamar(ruta, opciones = {}) {
+      const respuesta = await fetch(`/api/superadmin${ruta}`, {
+        ...opciones,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opciones.headers || {}) },
+      });
+      if (respuesta.status === 401 || respuesta.status === 403) {
+        cerrarSesionSuperadmin();
+        throw new Error('Sesión inválida');
+      }
+      const cuerpo = await respuesta.json();
+      if (!respuesta.ok) throw new Error(cuerpo.error || 'Ocurrió un error');
+      return cuerpo;
+    }
+
+    async function cargar() {
+      const contenedor = document.getElementById('contenedor-tabla');
+      try {
+        const { inmobiliarias } = await llamar('/inmobiliarias');
+        if (inmobiliarias.length === 0) {
+          contenedor.innerHTML = '<p class="estado-vacio">Todavía no hay inmobiliarias registradas.</p>';
+          return;
+        }
+        contenedor.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Inmobiliaria</th><th>Slug</th><th>Contacto</th>
+                <th>Usuarios</th><th>Propiedades</th><th>Leads</th>
+                <th>Estado</th><th>Alta</th><th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${inmobiliarias.map((i) => `
+                <tr>
+                  <td>${i.nombre}</td>
+                  <td>${i.slug}</td>
+                  <td>${i.email_contacto || i.telefono || '—'}</td>
+                  <td>${i.cantidad_usuarios}</td>
+                  <td>${i.cantidad_propiedades}</td>
+                  <td>${i.cantidad_leads}</td>
+                  <td><span class="badge ${i.activa ? 'badge-activa' : 'badge-inactiva'}">${i.activa ? 'Activa' : 'Inactiva'}</span></td>
+                  <td>${new Date(i.creado_en).toLocaleDateString('es-AR')}</td>
+                  <td>
+                    <button type="button" data-id="${i.id}" data-activa="${i.activa ? '0' : '1'}"
+                      style="background:${i.activa ? '#dc2626' : '#16a34a'}">
+                      ${i.activa ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        contenedor.querySelectorAll('button[data-id]').forEach((boton) => {
+          boton.addEventListener('click', () => cambiarEstado(boton.dataset.id, boton.dataset.activa === '1'));
+        });
+      } catch (error) {
+        contenedor.innerHTML = `<p class="mensaje-error">${error.message}</p>`;
+      }
+    }
+
+    async function cambiarEstado(id, activa) {
+      try {
+        await llamar(`/inmobiliarias/${id}/activa`, { method: 'PUT', body: JSON.stringify({ activa }) });
+        await cargar();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    cargar();
+  </script>
+</body>
+</html>

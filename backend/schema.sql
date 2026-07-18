@@ -6,6 +6,16 @@ CREATE DATABASE IF NOT EXISTS tours360
 
 USE tours360;
 
+-- Dueños de la plataforma (no pertenecen a ninguna inmobiliaria), separado
+-- de "usuarios" a propósito para no mezclar el acceso multi-tenant con el
+-- acceso de administración de la plataforma entera.
+CREATE TABLE superadmins (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE inmobiliarias (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(150) NOT NULL,
