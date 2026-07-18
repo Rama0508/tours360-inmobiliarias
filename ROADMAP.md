@@ -40,14 +40,22 @@ Las "medidas" (m², ambientes, dormitorios, baños) ya existían desde la fase 1
 a nivel propiedad — esta fase se enfocó en la ubicación visual de cada
 ambiente sobre un plano, no en medidas por ambiente individual.
 
-## Fase 4 — Infraestructura de negocio (multi-tenant real, vender a muchas inmobiliarias)
+## Fase 4 — Infraestructura de negocio (multi-tenant real, vender a muchas inmobiliarias) 🔨 CASI TERMINADA
 
-- [ ] Registro self-service de inmobiliarias (hoy las creo yo a mano en la base).
-- [ ] Panel de superadmin (ver todas las inmobiliarias, activar/desactivar, uso).
-- [ ] Términos y condiciones + consentimiento de datos personales en el
-      formulario de lead (Ley 25.326, Argentina).
-- [ ] Facturación / suscripciones — pendiente decidir proveedor de pagos
-      (MercadoPago es lo natural para Argentina).
+- [x] Registro self-service de inmobiliarias (/registro.html).
+- [x] Panel de superadmin (/superadmin, listar/activar/desactivar inmobiliarias
+      con estadísticas básicas).
+- [x] Términos y condiciones + consentimiento de datos personales en el
+      formulario de lead y en el registro (Ley 25.326, Argentina).
+- [x] Infraestructura de facturación con Mercado Pago (suscripciones
+      recurrentes vía preapproval, webhook de cambio de estado). Precio
+      configurable por variable de entorno ($15.000 ARS/mes de arranque).
+
+**Pendiente:** probar el flujo de pago real end-to-end — necesita las
+credenciales de Mercado Pago (Access Token + Public Key) del usuario, y el
+webhook necesita una URL pública para probarse de verdad (no funciona contra
+localhost). Se retoma cuando haya despliegue real (fase 5) o un túnel
+temporal (ngrok) para probar antes.
 
 ## Fase 5 — Producción
 
