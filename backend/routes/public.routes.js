@@ -4,16 +4,9 @@ const resolveTenant = require('../middleware/resolveTenant');
 const storage = require('../lib/storage');
 const { camposFaltantes } = require('../lib/validar');
 const asyncHandler = require('../lib/asyncHandler');
+const { buscarPropiedadPublicada } = require('../lib/propiedadPublica');
 
 const router = express.Router();
-
-async function buscarPropiedadPublicada(inmobiliariaId, propiedadSlug) {
-  const [filas] = await db.query(
-    'SELECT * FROM propiedades WHERE inmobiliaria_id = ? AND slug = ? AND estado = ?',
-    [inmobiliariaId, propiedadSlug, 'publicada']
-  );
-  return filas[0] || null;
-}
 
 router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPublicada(req.inmobiliaria.id, req.params.propiedadSlug);
