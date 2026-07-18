@@ -169,10 +169,21 @@ export function crearVisor360({ contenedor, onNavegar }) {
   controls.rotateSpeed = -0.4;
   controls.target.set(0, 0, -1);
 
+  // Dos esferas superpuestas para el cross-fade: "materialBase" es lo que se
+  // ve normalmente, "materialEntrante" arranca invisible y se usa solo
+  // durante la transición, subiendo su opacidad mientras materialBase se
+  // mantiene debajo. Al terminar, su textura se copia a materialBase y
+  // vuelve a opacidad 0, lista para la próxima vez.
   const geometria = new THREE.SphereGeometry(RADIO_ESFERA, 60, 40);
-  const material = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
-  const esfera = new THREE.Mesh(geometria, material);
-  scene.add(esfera);
+  const materialBase = new THREE.MeshBasicMaterial({ color: 0x111111, side: THREE.BackSide });
+  const materialEntrante = new THREE.MeshBasicMaterial({
+    color: 0xffffff, side: THREE.BackSide, transparent: true, opacity: 0, depthWrite: false,
+  });
+  const esferaBase = new THREE.Mesh(geometria, materialBase);
+  const esferaEntrante = new THREE.Mesh(geometria, materialEntrante);
+  esferaEntrante.renderOrder = 1;
+  scene.add(esferaBase);
+  scene.add(esferaEntrante);
 
   const texturaFlecha = crearTexturaFlecha();
   const grupoHotspots = new THREE.Group();
@@ -182,26 +193,19 @@ export function crearVisor360({ contenedor, onNavegar }) {
   const cargadorTexturas = new THREE.TextureLoader();
 
   const FOV_NORMAL = 75;
-  const FOV_CAMINANDO = 45;
+  const FOV_CAMINANDO = 52;
 
-  // Anima el FOV de la cámara para simular que uno avanza hacia el punto de
-  // navegación. No hay geometría 3D real para caminar, así que esto es una
-  // ilusión (zoom + fundido), la misma técnica que usan la mayoría de los
-  // tours 360 inmobiliarios reales entre foto y foto.
-  function animarFov(objetivo, duracionMs) {
-    return new Promise((resolve) => {
-      const fovInicial = camera.fov;
-      const inicio = performance.now();
-      function paso(ahora) {
-        const t = Math.min((ahora - inicio) / duracionMs, 1);
-        const suavizado = t * (2 - t);
-        camera.fov = fovInicial + (objetivo - fovInicial) * suavizado;
-        camera.updateProjectionMatrix();
-        if (t < 1) requestAnimationFrame(paso);
-        else resolve();
-      }
-      requestAnimationFrame(paso);
-    });
+  // Anima un valor de "ahora" a "hasta" durante duracionMs, con ease-out,
+  // llamando a onPaso(t) en cada frame y a onFin() cuando termina.
+  function animar_valor(duracionMs, onPaso, onFin) {
+    const inicio = performance.now();
+    function paso(ahora) {
+      const t = Math.min((ahora - inicio) / duracionMs, 1);
+      onPaso(t * (2 - t));
+      if (t < 1) requestAnimationFrame(paso);
+      else if (onFin) onFin();
+    }
+    requestAnimationFrame(paso);
   }
 
   function pintarHotspots(hotspots) {
@@ -216,28 +220,66 @@ export function crearVisor360({ contenedor, onNavegar }) {
     });
   }
 
+  let enTransicion = false;
+
   function irAEscena(escena, hotspotsDeEscena) {
-    if (escena.id === escenaActualId) return;
+    if (escena.id === escenaActualId || enTransicion) return;
     escenaActualId = escena.id;
 
-    const DURACION_PASO = 380;
-    overlayFade.style.opacity = '1';
-    animarFov(FOV_CAMINANDO, DURACION_PASO);
-
-    setTimeout(() => {
+    // Primera carga (no hay nada dibujado todavía): fundido simple desde negro.
+    if (!materialBase.map) {
+      overlayFade.style.opacity = '1';
       cargadorTexturas.load(escena.url, (textura) => {
         textura.colorSpace = THREE.SRGBColorSpace;
-        material.map = textura;
-        material.color.set(0xffffff);
-        material.needsUpdate = true;
+        materialBase.map = textura;
+        materialBase.color.set(0xffffff);
+        materialBase.needsUpdate = true;
         pintarHotspots(hotspotsDeEscena);
-        camera.fov = FOV_NORMAL;
-        camera.updateProjectionMatrix();
-        requestAnimationFrame(() => {
-          overlayFade.style.opacity = '0';
-        });
+        requestAnimationFrame(() => { overlayFade.style.opacity = '0'; });
       });
-    }, DURACION_PASO);
+      return;
+    }
+
+    enTransicion = true;
+    grupoHotspots.visible = false;
+
+    cargadorTexturas.load(escena.url, (textura) => {
+      textura.colorSpace = THREE.SRGBColorSpace;
+      materialEntrante.map = textura;
+      materialEntrante.needsUpdate = true;
+
+      const fovInicial = camera.fov;
+      const DURACION_AVANCE = 900;
+
+      // Avanzar: la foto nueva se funde encima de la actual mientras la
+      // cámara hace zoom, como si uno caminara hacia el punto elegido.
+      animar_valor(
+        DURACION_AVANCE,
+        (t) => {
+          materialEntrante.opacity = t;
+          camera.fov = fovInicial + (FOV_CAMINANDO - fovInicial) * t;
+          camera.updateProjectionMatrix();
+        },
+        () => {
+          // Consolidar: la foto nueva pasa a ser la base, la capa de
+          // transición vuelve a quedar invisible lista para la próxima vez.
+          if (materialBase.map) materialBase.map.dispose();
+          materialBase.map = materialEntrante.map;
+          materialBase.needsUpdate = true;
+          materialEntrante.opacity = 0;
+
+          pintarHotspots(hotspotsDeEscena);
+          grupoHotspots.visible = true;
+
+          // Asentarse: volver el FOV a la normalidad, como si dejaras de avanzar.
+          const fovDesde = camera.fov;
+          animar_valor(350, (t2) => {
+            camera.fov = fovDesde + (FOV_NORMAL - fovDesde) * t2;
+            camera.updateProjectionMatrix();
+          }, () => { enTransicion = false; });
+        }
+      );
+    });
   }
 
   renderer.domElement.addEventListener('click', (evento) => {
