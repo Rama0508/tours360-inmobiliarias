@@ -26,6 +26,8 @@ CREATE TABLE usuarios (
   password_hash VARCHAR(255) NOT NULL,
   rol ENUM('admin', 'agente') NOT NULL DEFAULT 'agente',
   activo TINYINT(1) NOT NULL DEFAULT 1,
+  reset_token VARCHAR(64) NULL,
+  reset_token_expira DATETIME NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (inmobiliaria_id) REFERENCES inmobiliarias(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

@@ -3,36 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Iniciar sesión — Tours 360</title>
+  <title>Recuperar contraseña — Tours 360</title>
   <link rel="stylesheet" href="/shared/estilos.css" />
 </head>
 <body>
   <div class="pantalla-centrada">
     <div class="tarjeta">
-      <h1>Iniciar sesión</h1>
-      <form id="form-login">
+      <h1>Recuperar contraseña</h1>
+      <form id="form-recuperar">
         <div class="campo">
-          <label for="email">Email</label>
+          <label for="email">Tu email</label>
           <input type="email" id="email" name="email" required autocomplete="username" />
         </div>
-        <div class="campo">
-          <label for="password">Contraseña</label>
-          <input type="password" id="password" name="password" required autocomplete="current-password" />
-        </div>
-        <button type="submit" id="boton-login">Ingresar</button>
+        <button type="submit" id="boton-enviar">Enviar link de recuperación</button>
         <p class="mensaje-error" id="mensaje-error"></p>
         <p class="mensaje-exito" id="mensaje-exito"></p>
       </form>
       <p style="text-align:center;margin-top:16px;font-size:0.85rem">
-        <a href="/recuperar.html">¿Olvidaste tu contraseña?</a>
+        <a href="/login.html">Volver a iniciar sesión</a>
       </p>
     </div>
   </div>
 
   <script src="/shared/api.js"></script>
   <script>
-    const form = document.getElementById('form-login');
-    const boton = document.getElementById('boton-login');
+    const form = document.getElementById('form-recuperar');
+    const boton = document.getElementById('boton-enviar');
     const mensajeError = document.getElementById('mensaje-error');
     const mensajeExito = document.getElementById('mensaje-exito');
 
@@ -41,26 +37,21 @@
       mensajeError.textContent = '';
       mensajeExito.textContent = '';
       boton.disabled = true;
-      boton.textContent = 'Ingresando...';
+      boton.textContent = 'Enviando...';
 
       try {
         const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-
-        const { token, usuario } = await api.apiFetch('/auth/login', {
+        const { mensaje } = await api.apiFetch('/auth/solicitar-reset', {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email }),
         });
-
-        api.setToken(token);
-        localStorage.setItem('usuario', JSON.stringify(usuario));
-        mensajeExito.textContent = `¡Bienvenido, ${usuario.nombre}! Redirigiendo...`;
-        window.location.href = '/admin/propiedades.html';
+        mensajeExito.textContent = mensaje;
+        form.reset();
       } catch (error) {
         mensajeError.textContent = error.message;
       } finally {
         boton.disabled = false;
-        boton.textContent = 'Ingresar';
+        boton.textContent = 'Enviar link de recuperación';
       }
     });
   </script>
