@@ -72,6 +72,47 @@
       color: #fff;
     }
 
+    .seccion-muebles {
+      padding: 12px 16px;
+      background: #f9fafb;
+      margin: 0 16px 16px;
+      border-radius: 12px;
+    }
+    .seccion-muebles h3 {
+      font-size: 0.9rem;
+      margin: 0 0 6px;
+    }
+    .seccion-muebles .ayuda-muebles {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin: 0 0 10px;
+    }
+    .seccion-muebles input[type="file"] {
+      font-size: 0.8rem;
+    }
+    .seccion-muebles button {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    #controles-mueble-seleccionado {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #e5e7eb;
+    }
+    #controles-mueble-seleccionado label {
+      font-size: 0.8rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+    #controles-mueble-seleccionado input[type="range"] {
+      width: 100%;
+    }
+    #controles-mueble-seleccionado button {
+      background: #dc2626;
+    }
+
     .seccion-plano {
       padding: 0 16px 16px;
     }
@@ -160,6 +201,23 @@
         <div class="controles-caminar" id="controles-caminar"></div>
       </div>
       <div class="selector-ambientes" id="selector-ambientes"></div>
+
+      <div class="seccion-muebles" id="seccion-muebles" style="display:none">
+        <h3>🛋️ Probá tus muebles acá</h3>
+        <p class="ayuda-muebles">
+          Subí una foto de tu sillón, mesa o lo que quieras — aparece sobre la foto 360
+          y podés arrastrarlo y agrandarlo tocándolo. Es una vista aproximada para hacerte
+          una idea, no una medida exacta.
+        </p>
+        <input type="file" id="input-mueble" accept="image/*" />
+        <button type="button" id="boton-agregar-mueble">Agregar mueble</button>
+        <div id="controles-mueble-seleccionado" style="display:none">
+          <label for="slider-tamano-mueble">Tamaño</label>
+          <input type="range" id="slider-tamano-mueble" min="30" max="250" value="100" />
+          <button type="button" id="boton-quitar-mueble">Quitar este mueble</button>
+        </div>
+        <p class="mensaje-error" id="mensaje-error-mueble"></p>
+      </div>
 
       <div class="seccion-plano" id="seccion-plano" style="display:none">
         <h3>Plano de la propiedad</h3>
@@ -286,8 +344,58 @@
       visor = crearVisor360({ contenedor, onNavegar: irAEscena });
       pintarSelectorAmbientes();
       pintarPlano();
+      configurarMuebles();
       const inicial = datos.tour.escenas.find((e) => e.id === datos.tour.escena_inicial_id) || datos.tour.escenas[0];
       irAEscena(inicial.id);
+    }
+
+    let muebleSeleccionadoActual = null;
+
+    function configurarMuebles() {
+      document.getElementById('seccion-muebles').style.display = 'block';
+
+      visor.definirCallbackSeleccionMueble((id) => {
+        muebleSeleccionadoActual = id;
+        const controles = document.getElementById('controles-mueble-seleccionado');
+        if (id === null) {
+          controles.style.display = 'none';
+        } else {
+          controles.style.display = 'block';
+          document.getElementById('slider-tamano-mueble').value = 100;
+        }
+      });
+
+      document.getElementById('boton-agregar-mueble').addEventListener('click', async () => {
+        const input = document.getElementById('input-mueble');
+        const mensajeError = document.getElementById('mensaje-error-mueble');
+        mensajeError.textContent = '';
+
+        if (!input.files[0]) {
+          mensajeError.textContent = 'Elegí una foto primero';
+          return;
+        }
+        if (!input.files[0].type.startsWith('image/')) {
+          mensajeError.textContent = 'Tiene que ser una imagen';
+          return;
+        }
+
+        try {
+          await visor.agregarMueble(input.files[0]);
+          input.value = '';
+        } catch (error) {
+          mensajeError.textContent = error.message;
+        }
+      });
+
+      document.getElementById('slider-tamano-mueble').addEventListener('input', (evento) => {
+        if (muebleSeleccionadoActual === null) return;
+        visor.escalarMueble(muebleSeleccionadoActual, Number(evento.target.value) / 100);
+      });
+
+      document.getElementById('boton-quitar-mueble').addEventListener('click', () => {
+        if (muebleSeleccionadoActual === null) return;
+        visor.quitarMueble(muebleSeleccionadoActual);
+      });
     }
 
     function pintarPlano() {

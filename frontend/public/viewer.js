@@ -192,6 +192,91 @@ export function crearVisor360({ contenedor, onNavegar }) {
   const raycaster = new THREE.Raycaster();
   const cargadorTexturas = new THREE.TextureLoader();
 
+  // --- Mudanza virtual: fotos propias del usuario "pegadas" a un punto de
+  // la esfera (no hay geometría real de la habitación, así que no hay
+  // perspectiva/escala verdaderas — es una ilusión visual para tener una
+  // idea de cómo quedaría el mueble, no una medición precisa). ---
+  const RADIO_MUEBLES = RADIO_ESFERA * 0.6;
+  const TAMANO_BASE_MUEBLE = 70;
+  const grupoMuebles = new THREE.Group();
+  scene.add(grupoMuebles);
+  let siguienteIdMueble = 1;
+  let muebleArrastrando = null;
+  let onCambioSeleccionMueble = null;
+  let muebleSeleccionadoId = null;
+
+  function agregarMueble(archivo) {
+    return new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onerror = () => reject(new Error('No pudimos leer esa imagen'));
+      lector.onload = () => {
+        cargadorTexturas.load(lector.result, (textura) => {
+          textura.colorSpace = THREE.SRGBColorSpace;
+          const material = new THREE.SpriteMaterial({ map: textura, transparent: true, depthTest: false });
+          const sprite = new THREE.Sprite(material);
+
+          const relacionAspecto = textura.image.width / textura.image.height;
+          const escalaBase = new THREE.Vector2(
+            relacionAspecto >= 1 ? TAMANO_BASE_MUEBLE : TAMANO_BASE_MUEBLE * relacionAspecto,
+            relacionAspecto >= 1 ? TAMANO_BASE_MUEBLE / relacionAspecto : TAMANO_BASE_MUEBLE
+          );
+          sprite.userData.escalaBase = escalaBase;
+          sprite.userData.factorEscala = 1;
+          sprite.scale.set(escalaBase.x, escalaBase.y, 1);
+
+          const direccion = new THREE.Vector3();
+          camera.getWorldDirection(direccion);
+          sprite.position.copy(direccion.multiplyScalar(RADIO_MUEBLES));
+
+          const id = siguienteIdMueble++;
+          sprite.userData.id = id;
+          sprite.renderOrder = 2;
+          grupoMuebles.add(sprite);
+          resolve(id);
+        });
+      };
+      lector.readAsDataURL(archivo);
+    });
+  }
+
+  function quitarMueble(id) {
+    const sprite = grupoMuebles.children.find((s) => s.userData.id === id);
+    if (!sprite) return;
+    sprite.material.map?.dispose();
+    sprite.material.dispose();
+    grupoMuebles.remove(sprite);
+    if (muebleSeleccionadoId === id) seleccionarMueble(null);
+  }
+
+  function escalarMueble(id, factor) {
+    const sprite = grupoMuebles.children.find((s) => s.userData.id === id);
+    if (!sprite) return;
+    sprite.userData.factorEscala = factor;
+    const base = sprite.userData.escalaBase;
+    sprite.scale.set(base.x * factor, base.y * factor, 1);
+  }
+
+  function seleccionarMueble(id) {
+    muebleSeleccionadoId = id;
+    if (onCambioSeleccionMueble) onCambioSeleccionMueble(id);
+  }
+
+  function definirCallbackSeleccionMueble(callback) {
+    onCambioSeleccionMueble = callback;
+  }
+
+  // Los muebles están "pegados" a la foto de la habitación actual — al
+  // cambiar de ambiente no tendría sentido que sigan flotando ahí, así que
+  // se limpian solos en cada salto (ver irAEscena más abajo).
+  function limpiarMuebles() {
+    grupoMuebles.children.slice().forEach((sprite) => {
+      sprite.material.map?.dispose();
+      sprite.material.dispose();
+      grupoMuebles.remove(sprite);
+    });
+    if (muebleSeleccionadoId !== null) seleccionarMueble(null);
+  }
+
   const FOV_NORMAL = 75;
   const FOV_CAMINANDO = 52;
 
@@ -225,6 +310,7 @@ export function crearVisor360({ contenedor, onNavegar }) {
   function irAEscena(escena, hotspotsDeEscena) {
     if (escena.id === escenaActualId || enTransicion) return;
     escenaActualId = escena.id;
+    limpiarMuebles();
 
     // Primera carga (no hay nada dibujado todavía): fundido simple desde negro.
     if (!materialBase.map) {
@@ -282,18 +368,56 @@ export function crearVisor360({ contenedor, onNavegar }) {
     });
   }
 
-  renderer.domElement.addEventListener('click', (evento) => {
+  function puntoNormalizado(evento) {
     const rect = renderer.domElement.getBoundingClientRect();
-    const puntero = new THREE.Vector2(
+    return new THREE.Vector2(
       ((evento.clientX - rect.left) / rect.width) * 2 - 1,
       -((evento.clientY - rect.top) / rect.height) * 2 + 1
     );
-    raycaster.setFromCamera(puntero, camera);
+  }
+
+  renderer.domElement.addEventListener('click', (evento) => {
+    if (muebleArrastrando) return; // el pointerup ya limpia esto, pero por las dudas
+    raycaster.setFromCamera(puntoNormalizado(evento), camera);
+
+    const hitMuebles = raycaster.intersectObjects(grupoMuebles.children);
+    if (hitMuebles.length > 0) {
+      seleccionarMueble(hitMuebles[0].object.userData.id);
+      return;
+    }
+
     const intersecciones = raycaster.intersectObjects(grupoHotspots.children);
     if (intersecciones.length > 0) {
       const hotspot = intersecciones[0].object.userData.hotspot;
       if (hotspot.escena_destino_id && onNavegar) onNavegar(hotspot.escena_destino_id);
+      return;
     }
+
+    if (muebleSeleccionadoId !== null) seleccionarMueble(null);
+  });
+
+  renderer.domElement.addEventListener('pointerdown', (evento) => {
+    raycaster.setFromCamera(puntoNormalizado(evento), camera);
+    const hit = raycaster.intersectObjects(grupoMuebles.children);
+    if (hit.length === 0) return;
+
+    muebleArrastrando = hit[0].object;
+    controls.enabled = false;
+  });
+
+  renderer.domElement.addEventListener('pointermove', (evento) => {
+    if (!muebleArrastrando) return;
+    raycaster.setFromCamera(puntoNormalizado(evento), camera);
+    const hit = raycaster.intersectObject(esferaBase);
+    if (hit.length === 0) return;
+    muebleArrastrando.position.copy(hit[0].point.normalize().multiplyScalar(RADIO_MUEBLES));
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!muebleArrastrando) return;
+    seleccionarMueble(muebleArrastrando.userData.id);
+    muebleArrastrando = null;
+    if (!controlesGiroscopio.activo) controls.enabled = true;
   });
 
   function animar() {
@@ -314,5 +438,12 @@ export function crearVisor360({ contenedor, onNavegar }) {
   }
   window.addEventListener('resize', ajustarTamano);
 
-  return { irAEscena, ajustarTamano };
+  return {
+    irAEscena,
+    ajustarTamano,
+    agregarMueble,
+    quitarMueble,
+    escalarMueble,
+    definirCallbackSeleccionMueble,
+  };
 }
