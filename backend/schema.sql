@@ -121,6 +121,7 @@ CREATE TABLE leads (
   email VARCHAR(150),
   mensaje TEXT,
   contactado TINYINT(1) NOT NULL DEFAULT 0,
+  acepto_terminos TINYINT(1) NOT NULL DEFAULT 0,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_leads_contactado (inmobiliaria_id, contactado),
   FOREIGN KEY (propiedad_id) REFERENCES propiedades(id) ON DELETE CASCADE,

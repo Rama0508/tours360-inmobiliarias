@@ -198,6 +198,13 @@
             <label for="mensaje">Mensaje</label>
             <textarea id="mensaje" rows="3"></textarea>
           </div>
+          <div class="campo" style="display:flex;align-items:flex-start;gap:8px">
+            <input type="checkbox" id="acepto_terminos" style="width:auto;margin-top:3px" required />
+            <label for="acepto_terminos" style="font-size:0.8rem;font-weight:normal">
+              Acepto que mis datos se compartan con la inmobiliaria para que me contacte
+              (<a href="/terminos.html" target="_blank">ver términos</a>)
+            </label>
+          </div>
           <button type="submit" id="boton-enviar-lead">Enviar consulta</button>
           <p class="mensaje-error" id="mensaje-error-lead"></p>
           <p class="mensaje-exito" id="mensaje-exito-lead"></p>
@@ -352,6 +359,7 @@
           telefono: document.getElementById('telefono').value.trim(),
           email: document.getElementById('email').value.trim(),
           mensaje: document.getElementById('mensaje').value.trim(),
+          acepto_terminos: document.getElementById('acepto_terminos').checked,
         };
         const respuesta = await fetch(`/api/${slug}/propiedades/${propiedadSlug}/leads`, {
           method: 'POST',

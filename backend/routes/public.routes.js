@@ -59,11 +59,14 @@ router.post('/:slug/propiedades/:propiedadSlug/leads', resolveTenant, asyncHandl
   if (faltantes.length > 0) {
     return res.status(400).json({ error: 'Completá tu nombre y tu teléfono para que te podamos contactar' });
   }
+  if (!req.body.acepto_terminos) {
+    return res.status(400).json({ error: 'Tenés que aceptar el tratamiento de tus datos para continuar' });
+  }
 
   const { nombre, telefono, email, mensaje } = req.body;
 
   await db.query(
-    'INSERT INTO leads (propiedad_id, inmobiliaria_id, nombre, telefono, email, mensaje) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO leads (propiedad_id, inmobiliaria_id, nombre, telefono, email, mensaje, acepto_terminos) VALUES (?, ?, ?, ?, ?, ?, 1)',
     [propiedad.id, req.inmobiliaria.id, nombre, telefono, email || null, mensaje || null]
   );
 
