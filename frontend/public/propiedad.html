@@ -72,6 +72,46 @@
       color: #fff;
     }
 
+    .seccion-plano {
+      padding: 0 16px 16px;
+    }
+    .seccion-plano h3 {
+      font-size: 0.9rem;
+      margin: 0 0 8px;
+      color: #374151;
+    }
+    .visor-plano-publico {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f9fafb;
+      border: 1px solid #f3f4f6;
+    }
+    .visor-plano-publico img {
+      width: 100%;
+      display: block;
+    }
+    .marcador-plano-publico {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--color-primario);
+      border: 2px solid #fff;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+    .marcador-plano-publico.activo {
+      outline: 3px solid rgba(0, 0, 0, 0.2);
+    }
+
     .galeria-fotos {
       display: flex;
       gap: 8px;
@@ -120,6 +160,11 @@
         <div class="controles-caminar" id="controles-caminar"></div>
       </div>
       <div class="selector-ambientes" id="selector-ambientes"></div>
+
+      <div class="seccion-plano" id="seccion-plano" style="display:none">
+        <h3>Plano de la propiedad</h3>
+        <div id="visor-plano-publico"></div>
+      </div>
 
       <div class="encabezado-propiedad">
         <h1 id="titulo-propiedad"></h1>
@@ -233,8 +278,27 @@
       const contenedor = document.getElementById('visor-360');
       visor = crearVisor360({ contenedor, onNavegar: irAEscena });
       pintarSelectorAmbientes();
+      pintarPlano();
       const inicial = datos.tour.escenas.find((e) => e.id === datos.tour.escena_inicial_id) || datos.tour.escenas[0];
       irAEscena(inicial.id);
+    }
+
+    function pintarPlano() {
+      if (!datos.tour.plano_url) return;
+      const escenasConPosicion = datos.tour.escenas.filter((e) => e.pos_x_plano !== null && e.pos_y_plano !== null);
+      if (escenasConPosicion.length === 0) return;
+
+      document.getElementById('seccion-plano').style.display = 'block';
+      const marcadores = escenasConPosicion.map((e) => `
+        <div class="marcador-plano-publico" data-escena-id="${e.id}"
+          style="left:${e.pos_x_plano}%;top:${e.pos_y_plano}%" title="${e.nombre}">${e.nombre.charAt(0).toUpperCase()}</div>
+      `).join('');
+      document.getElementById('visor-plano-publico').innerHTML =
+        `<div class="visor-plano-publico"><img src="${datos.tour.plano_url}" alt="Plano de la propiedad" />${marcadores}</div>`;
+
+      document.querySelectorAll('.marcador-plano-publico').forEach((marcador) => {
+        marcador.addEventListener('click', () => irAEscena(Number(marcador.dataset.escenaId)));
+      });
     }
 
     function pintarSelectorAmbientes() {
@@ -254,6 +318,9 @@
       visor.irAEscena(escena, hotspotsDeEscena);
       document.querySelectorAll('.selector-ambientes button').forEach((b) => {
         b.classList.toggle('activo', Number(b.dataset.escenaId) === escenaId);
+      });
+      document.querySelectorAll('.marcador-plano-publico').forEach((m) => {
+        m.classList.toggle('activo', Number(m.dataset.escenaId) === escenaId);
       });
       pintarControlesCaminar(hotspotsDeEscena);
     }
