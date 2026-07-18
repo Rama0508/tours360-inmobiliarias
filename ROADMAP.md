@@ -13,18 +13,20 @@ giroscopio, pantalla completa, transición estilo Street View), panel de
 leads, manejo centralizado de errores. Ver historial de commits para el
 detalle etapa por etapa.
 
-## Fase 2 — Pulido profesional (que no dé vergüenza mostrarlo a un cliente real) 🔨 EN CURSO
+## Fase 2 — Pulido profesional (que no dé vergüenza mostrarlo a un cliente real) ✅ TERMINADA
 
-- [ ] Vista previa al compartir por WhatsApp (meta tags Open Graph: título,
-      descripción, imagen de portada) — crítico porque todo el producto se
-      comparte por link de WhatsApp y hoy no muestra nada.
-- [ ] Branding por inmobiliaria: logo y color propio en la página pública y
-      el panel (hoy todo dice "Tours 360" genérico).
-- [ ] Recuperar contraseña (hoy si un agente se la olvida, no hay forma sin
-      entrar a la base a mano).
-- [ ] Notificación de lead nuevo por email (o WhatsApp) al agente.
-- [ ] Optimización automática de imágenes al subir (redimensionar/comprimir,
-      hoy se guarda tal cual la suba el agente, puede pesar varios MB).
+- [x] Vista previa al compartir por WhatsApp (Open Graph server-side: título,
+      descripción, imagen de portada).
+- [x] Branding por inmobiliaria: logo y color propio en la página pública
+      (panel "Mi inmobiliaria", solo el rol admin puede editarlo).
+- [x] Recuperar contraseña por email (Resend).
+- [x] Notificación de lead nuevo por email al agente dueño de la propiedad.
+- [x] Optimización automática de imágenes al subir (sharp: fotos comunes
+      máx. 1600px, fotos 360 máx. 4096x2048, todo a JPEG calidad 82).
+
+**Pendiente para producción (fase 5):** Resend en modo sandbox solo permite
+mandar emails a la casilla del dueño de la cuenta — falta verificar un
+dominio propio para poder notificar a cualquier agente/comprador real.
 
 ## Fase 3 — Planos y medidas
 
