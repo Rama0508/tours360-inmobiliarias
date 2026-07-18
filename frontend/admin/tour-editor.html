@@ -97,6 +97,48 @@
       color: #6b7280;
       margin-top: 8px;
     }
+    .panel-plano {
+      background: #fff;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 20px;
+    }
+    .panel-plano h2 {
+      font-size: 0.95rem;
+      margin-top: 0;
+    }
+    .visor-plano {
+      position: relative;
+      background: #f9fafb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .visor-plano img {
+      width: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .marcador-plano {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #6b7280;
+      border: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #fff;
+      font-weight: 600;
+    }
+    .marcador-plano.activo {
+      background: var(--color-primario);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -138,6 +180,18 @@
           <p class="mensaje-error" id="mensaje-error-hotspot"></p>
         </div>
       </div>
+
+      <div class="panel-plano">
+        <h2>Plano de la propiedad</h2>
+        <p class="ayuda-editor" style="margin-top:0">
+          Seleccioná un ambiente de la lista de arriba y hacé click en el plano para ubicarlo ahí.
+        </p>
+        <div id="contenedor-plano"></div>
+        <input type="file" id="input-plano" accept="image/jpeg,image/png,image/webp" />
+        <button type="button" id="boton-subir-plano" style="margin-top:8px;width:auto;padding:8px 16px">Subir / reemplazar plano</button>
+        <button type="button" id="boton-quitar-plano" style="margin-top:8px;margin-left:8px;width:auto;padding:8px 16px;background:#dc2626;display:none">Quitar plano</button>
+        <p class="mensaje-error" id="mensaje-error-plano"></p>
+      </div>
     </div>
   </div>
 
@@ -163,6 +217,7 @@
         document.getElementById('estado-carga').style.display = 'none';
         document.getElementById('editor').style.display = 'block';
         pintarListaEscenas();
+        pintarPlano();
         if (tour && tour.escenas.length > 0) {
           seleccionarEscena(escenaSeleccionadaId || tour.escenas[0].id);
         }
@@ -191,7 +246,91 @@
       escenaSeleccionadaId = escenaId;
       pintarListaEscenas();
       pintarVisor();
+      pintarPlano();
     }
+
+    function pintarPlano() {
+      const contenedor = document.getElementById('contenedor-plano');
+      const botonQuitar = document.getElementById('boton-quitar-plano');
+
+      if (!tourActual || !tourActual.plano_url) {
+        contenedor.innerHTML = '<p style="color:#6b7280;font-size:0.85rem">Todavía no subiste un plano.</p>';
+        botonQuitar.style.display = 'none';
+        return;
+      }
+
+      botonQuitar.style.display = 'inline-block';
+      const marcadores = tourActual.escenas
+        .filter((e) => e.pos_x_plano !== null && e.pos_y_plano !== null)
+        .map((e) => `
+          <div class="marcador-plano ${e.id === escenaSeleccionadaId ? 'activo' : ''}"
+            style="left:${e.pos_x_plano}%;top:${e.pos_y_plano}%" title="${e.nombre}">${e.nombre.charAt(0).toUpperCase()}</div>
+        `).join('');
+
+      contenedor.innerHTML = `<div class="visor-plano"><img src="${tourActual.plano_url}" id="img-plano" />${marcadores}</div>`;
+      document.getElementById('img-plano').addEventListener('click', onClickPlano);
+    }
+
+    async function onClickPlano(evento) {
+      const mensajeError = document.getElementById('mensaje-error-plano');
+      if (!escenaSeleccionadaId) {
+        mensajeError.textContent = 'Elegí un ambiente de la lista de arriba primero';
+        return;
+      }
+
+      const rect = evento.target.getBoundingClientRect();
+      const posX = Math.round(((evento.clientX - rect.left) / rect.width) * 10000) / 100;
+      const posY = Math.round(((evento.clientY - rect.top) / rect.height) * 10000) / 100;
+
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/escenas/${escenaSeleccionadaId}/posicion-plano`, {
+          method: 'PUT',
+          body: JSON.stringify({ pos_x: posX, pos_y: posY }),
+        });
+        mensajeError.textContent = '';
+        await cargarTour();
+        seleccionarEscena(escenaSeleccionadaId);
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      }
+    }
+
+    document.getElementById('boton-subir-plano').addEventListener('click', async () => {
+      const input = document.getElementById('input-plano');
+      const mensajeError = document.getElementById('mensaje-error-plano');
+      mensajeError.textContent = '';
+
+      if (!input.files[0]) {
+        mensajeError.textContent = 'Elegí una imagen primero';
+        return;
+      }
+
+      const boton = document.getElementById('boton-subir-plano');
+      boton.disabled = true;
+      boton.textContent = 'Subiendo...';
+      try {
+        const formData = new FormData();
+        formData.append('plano', input.files[0]);
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/tour/plano`, { method: 'POST', body: formData });
+        input.value = '';
+        await cargarTour();
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Subir / reemplazar plano';
+      }
+    });
+
+    document.getElementById('boton-quitar-plano').addEventListener('click', async () => {
+      if (!confirm('¿Quitar el plano de esta propiedad?')) return;
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/tour/plano`, { method: 'DELETE' });
+        await cargarTour();
+      } catch (error) {
+        document.getElementById('mensaje-error-plano').textContent = error.message;
+      }
+    });
 
     function pintarVisor() {
       const visor = document.getElementById('visor-escena');
