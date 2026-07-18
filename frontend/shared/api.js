@@ -10,7 +10,8 @@ function setToken(token) {
 }
 
 async function apiFetch(path, opciones = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(opciones.headers || {}) };
+  const esFormData = opciones.body instanceof FormData;
+  const headers = { ...(esFormData ? {} : { 'Content-Type': 'application/json' }), ...(opciones.headers || {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 

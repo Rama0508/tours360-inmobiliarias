@@ -116,6 +116,17 @@
         Eliminar propiedad
       </button>
     </form>
+
+    <div class="formulario-propiedad" id="seccion-galeria" style="display:none;margin-top:20px">
+      <h2 style="margin-top:0;font-size:1.05rem">Galería de fotos</h2>
+      <p style="color:#6b7280;font-size:0.85rem;margin-top:-8px">
+        Fotos comunes de la propiedad (no son las fotos 360 del tour).
+      </p>
+      <input type="file" id="input-foto" accept="image/jpeg,image/png,image/webp" />
+      <button type="button" id="boton-subir-foto" style="margin-top:12px">Subir foto</button>
+      <p class="mensaje-error" id="mensaje-error-galeria"></p>
+      <div id="grilla-galeria" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:16px"></div>
+    </div>
   </div>
 
   <script src="/shared/api.js"></script>
@@ -140,10 +151,71 @@
           document.getElementById('estado-carga').textContent = error.message;
           return;
         }
+        document.getElementById('seccion-galeria').style.display = 'block';
+        cargarGaleria();
       }
       document.getElementById('estado-carga').style.display = 'none';
       document.getElementById('form-propiedad').style.display = 'block';
     }
+
+    async function cargarGaleria() {
+      const grilla = document.getElementById('grilla-galeria');
+      try {
+        const { fotos } = await api.apiFetch(`/admin/propiedades/${propiedadId}/fotos`);
+        if (fotos.length === 0) {
+          grilla.innerHTML = '<p style="color:#6b7280;font-size:0.85rem">Todavía no subiste fotos.</p>';
+          return;
+        }
+        grilla.innerHTML = fotos.map((f) => `
+          <div style="width:120px">
+            <img src="${f.url}" style="width:120px;height:90px;object-fit:cover;border-radius:8px;display:block" />
+            <button type="button" data-foto-id="${f.id}" class="boton-borrar-foto"
+              style="margin-top:4px;background:#dc2626;font-size:0.75rem;padding:4px">Borrar</button>
+          </div>
+        `).join('');
+      } catch (error) {
+        grilla.innerHTML = `<p class="mensaje-error">${error.message}</p>`;
+      }
+    }
+
+    document.getElementById('boton-subir-foto').addEventListener('click', async () => {
+      const input = document.getElementById('input-foto');
+      const mensajeError = document.getElementById('mensaje-error-galeria');
+      mensajeError.textContent = '';
+
+      if (!input.files[0]) {
+        mensajeError.textContent = 'Elegí una foto primero';
+        return;
+      }
+
+      const boton = document.getElementById('boton-subir-foto');
+      boton.disabled = true;
+      boton.textContent = 'Subiendo...';
+
+      try {
+        const formData = new FormData();
+        formData.append('foto', input.files[0]);
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/fotos`, { method: 'POST', body: formData });
+        input.value = '';
+        await cargarGaleria();
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Subir foto';
+      }
+    });
+
+    document.getElementById('grilla-galeria').addEventListener('click', async (evento) => {
+      const boton = evento.target.closest('.boton-borrar-foto');
+      if (!boton) return;
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/fotos/${boton.dataset.fotoId}`, { method: 'DELETE' });
+        await cargarGaleria();
+      } catch (error) {
+        document.getElementById('mensaje-error-galeria').textContent = error.message;
+      }
+    });
 
     function llenarFormulario(p) {
       document.getElementById('titulo').value = p.titulo || '';
