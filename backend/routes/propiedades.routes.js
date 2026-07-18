@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../lib/asyncHandler');
 const { camposFaltantes } = require('../lib/validar');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ function validarPropiedad(body) {
 }
 
 // GET /api/admin/propiedades?estado=publicada
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const { estado } = req.query;
   const params = [req.usuario.inmobiliaria_id];
   let sql = 'SELECT * FROM propiedades WHERE inmobiliaria_id = ?';
@@ -60,9 +61,9 @@ router.get('/', async (req, res) => {
 
   const [propiedades] = await db.query(sql, params);
   res.json({ propiedades });
-});
+}));
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncHandler(async (req, res) => {
   const [filas] = await db.query('SELECT * FROM propiedades WHERE id = ? AND inmobiliaria_id = ?', [
     req.params.id,
     req.usuario.inmobiliaria_id,
@@ -71,9 +72,9 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
   }
   res.json({ propiedad: filas[0] });
-});
+}));
 
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const error = validarPropiedad(req.body);
   if (error) {
     return res.status(400).json({ error });
@@ -112,9 +113,9 @@ router.post('/', async (req, res) => {
 
   const [filas] = await db.query('SELECT * FROM propiedades WHERE id = ?', [resultado.insertId]);
   res.status(201).json({ propiedad: filas[0] });
-});
+}));
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', asyncHandler(async (req, res) => {
   const error = validarPropiedad(req.body);
   if (error) {
     return res.status(400).json({ error });
@@ -149,9 +150,9 @@ router.put('/:id', async (req, res) => {
 
   const [filas] = await db.query('SELECT * FROM propiedades WHERE id = ?', [req.params.id]);
   res.json({ propiedad: filas[0] });
-});
+}));
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncHandler(async (req, res) => {
   const [resultado] = await db.query('DELETE FROM propiedades WHERE id = ? AND inmobiliaria_id = ?', [
     req.params.id,
     req.usuario.inmobiliaria_id,
@@ -160,6 +161,6 @@ router.delete('/:id', async (req, res) => {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
   }
   res.status(204).send();
-});
+}));
 
 module.exports = router;

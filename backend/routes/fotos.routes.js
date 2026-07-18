@@ -3,6 +3,7 @@ const multer = require('multer');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const storage = require('../lib/storage');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -27,7 +28,7 @@ async function buscarPropiedadPropia(propiedadId, inmobiliariaId) {
   return filas[0] || null;
 }
 
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
@@ -38,10 +39,10 @@ router.get('/', async (req, res) => {
     [propiedad.id]
   );
   res.json({ fotos: fotos.map((f) => ({ id: f.id, url: storage.getUrl(f.storage_key), orden: f.orden })) });
-});
+}));
 
-router.post('/', (req, res) => {
-  upload.single('foto')(req, res, async (err) => {
+router.post('/', (req, res, next) => {
+  upload.single('foto')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
@@ -49,12 +50,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Tenés que adjuntar una foto' });
     }
 
-    const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
-    if (!propiedad) {
-      return res.status(404).json({ error: 'No encontramos esa propiedad' });
-    }
+    (async () => {
+      const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
+      if (!propiedad) {
+        return res.status(404).json({ error: 'No encontramos esa propiedad' });
+      }
 
-    try {
       const storageKey = await storage.upload(req.file.buffer, {
         folder: `propiedades/${propiedad.id}/fotos`,
         mimetype: req.file.mimetype,
@@ -66,13 +67,11 @@ router.post('/', (req, res) => {
       );
 
       res.status(201).json({ foto: { id: resultado.insertId, url: storage.getUrl(storageKey) } });
-    } catch (error) {
-      res.status(500).json({ error: 'No pudimos guardar la foto, probá de nuevo' });
-    }
+    })().catch(next);
   });
 });
 
-router.delete('/:fotoId', async (req, res) => {
+router.delete('/:fotoId', asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
@@ -90,6 +89,6 @@ router.delete('/:fotoId', async (req, res) => {
   await db.query('DELETE FROM fotos_propiedad WHERE id = ?', [req.params.fotoId]);
   await storage.delete(foto.storage_key);
   res.status(204).send();
-});
+}));
 
 module.exports = router;

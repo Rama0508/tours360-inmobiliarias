@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -14,7 +15,7 @@ async function buscarPropiedadPropia(propiedadId, inmobiliariaId) {
 }
 
 // GET /api/admin/propiedades/:propiedadId/tour — trae el tour con sus escenas y hotspots
-router.get('/', async (req, res) => {
+router.get('/', asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
@@ -33,10 +34,10 @@ router.get('/', async (req, res) => {
   );
 
   res.json({ tour: { ...tour, escenas, hotspots } });
-});
+}));
 
 // POST /api/admin/propiedades/:propiedadId/tour — crea el tour si no existe (una propiedad = un tour)
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad' });
@@ -50,6 +51,6 @@ router.post('/', async (req, res) => {
   const [resultado] = await db.query('INSERT INTO tours (propiedad_id) VALUES (?)', [propiedad.id]);
   const [tours] = await db.query('SELECT * FROM tours WHERE id = ?', [resultado.insertId]);
   res.status(201).json({ tour: tours[0] });
-});
+}));
 
 module.exports = router;

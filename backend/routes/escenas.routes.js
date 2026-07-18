@@ -3,6 +3,7 @@ const multer = require('multer');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const storage = require('../lib/storage');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -48,8 +49,8 @@ async function buscarEscenaPropia(escenaId, propiedadId, inmobiliariaId) {
   return filas[0] || null;
 }
 
-router.post('/', (req, res) => {
-  upload.single('foto')(req, res, async (err) => {
+router.post('/', (req, res, next) => {
+  upload.single('foto')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
@@ -60,12 +61,12 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Ponele un nombre al ambiente (ej. "Living")' });
     }
 
-    const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
-    if (!propiedad) {
-      return res.status(404).json({ error: 'No encontramos esa propiedad' });
-    }
+    (async () => {
+      const propiedad = await buscarPropiedadPropia(req.params.propiedadId, req.usuario.inmobiliaria_id);
+      if (!propiedad) {
+        return res.status(404).json({ error: 'No encontramos esa propiedad' });
+      }
 
-    try {
       const tour = await obtenerOCrearTour(propiedad.id);
 
       const storageKey = await storage.upload(req.file.buffer, {
@@ -85,13 +86,11 @@ router.post('/', (req, res) => {
       const [escenas] = await db.query('SELECT * FROM escenas WHERE id = ?', [resultado.insertId]);
       const escena = escenas[0];
       res.status(201).json({ escena: { ...escena, url: storage.getUrl(escena.storage_key) } });
-    } catch (error) {
-      res.status(500).json({ error: 'No pudimos guardar la foto 360, probá de nuevo' });
-    }
+    })().catch(next);
   });
 });
 
-router.delete('/:escenaId', async (req, res) => {
+router.delete('/:escenaId', asyncHandler(async (req, res) => {
   const escena = await buscarEscenaPropia(req.params.escenaId, req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!escena) {
     return res.status(404).json({ error: 'No encontramos esa escena' });
@@ -100,6 +99,6 @@ router.delete('/:escenaId', async (req, res) => {
   await db.query('DELETE FROM escenas WHERE id = ?', [escena.id]);
   await storage.delete(escena.storage_key);
   res.status(204).send();
-});
+}));
 
 module.exports = router;

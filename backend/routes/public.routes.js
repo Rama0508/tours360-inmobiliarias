@@ -3,6 +3,7 @@ const db = require('../config/db');
 const resolveTenant = require('../middleware/resolveTenant');
 const storage = require('../lib/storage');
 const { camposFaltantes } = require('../lib/validar');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ async function buscarPropiedadPublicada(inmobiliariaId, propiedadSlug) {
   return filas[0] || null;
 }
 
-router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, async (req, res) => {
+router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPublicada(req.inmobiliaria.id, req.params.propiedadSlug);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad, puede que ya no esté disponible' });
@@ -47,9 +48,9 @@ router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, async (req, res) 
     fotos: fotos.map((f) => ({ id: f.id, url: storage.getUrl(f.storage_key) })),
     tour,
   });
-});
+}));
 
-router.post('/:slug/propiedades/:propiedadSlug/leads', resolveTenant, async (req, res) => {
+router.post('/:slug/propiedades/:propiedadSlug/leads', resolveTenant, asyncHandler(async (req, res) => {
   const propiedad = await buscarPropiedadPublicada(req.inmobiliaria.id, req.params.propiedadSlug);
   if (!propiedad) {
     return res.status(404).json({ error: 'No encontramos esa propiedad, puede que ya no esté disponible' });
@@ -68,6 +69,6 @@ router.post('/:slug/propiedades/:propiedadSlug/leads', resolveTenant, async (req
   );
 
   res.status(201).json({ mensaje: 'Gracias, ya recibimos tu consulta. Te van a contactar a la brevedad.' });
-});
+}));
 
 module.exports = router;

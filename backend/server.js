@@ -9,6 +9,8 @@ const toursRoutes = require('./routes/tours.routes');
 const escenasRoutes = require('./routes/escenas.routes');
 const hotspotsRoutes = require('./routes/hotspots.routes');
 const publicRoutes = require('./routes/public.routes');
+const leadsRoutes = require('./routes/leads.routes');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +25,7 @@ app.use('/api/admin/propiedades/:propiedadId/fotos', fotosRoutes);
 app.use('/api/admin/propiedades/:propiedadId/tour', toursRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas', escenasRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas/:escenaId/hotspots', hotspotsRoutes);
+app.use('/api/admin/leads', leadsRoutes);
 app.use('/api', publicRoutes);
 
 app.get('/:slug/propiedad/:propiedadSlug', (req, res) => {
@@ -40,6 +43,8 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

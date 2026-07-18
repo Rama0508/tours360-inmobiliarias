@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leads — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    .item-lead {
+      background: #fff;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .item-lead h3 { margin: 0 0 4px; font-size: 1rem; }
+    .item-lead p { margin: 2px 0; font-size: 0.85rem; color: #4b5563; }
+    .item-lead .fecha { color: #9ca3af; font-size: 0.75rem; }
+    .item-lead button {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin">
+    <div class="encabezado-pagina">
+      <h1>Leads</h1>
+    </div>
+
+    <div class="filtros" id="filtros">
+      <button type="button" data-filtro="" class="activo">Todos</button>
+      <button type="button" data-filtro="0">Pendientes</button>
+      <button type="button" data-filtro="1">Contactados</button>
+    </div>
+
+    <div id="contenedor-leads">
+      <p class="estado-carga">Cargando leads...</p>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    if (exigirSesion()) {
+      pintarBarraAdmin('leads');
+      cargarLeads('');
+    }
+
+    document.getElementById('filtros').addEventListener('click', (evento) => {
+      const boton = evento.target.closest('button[data-filtro]');
+      if (!boton) return;
+      document.querySelectorAll('#filtros button').forEach((b) => b.classList.remove('activo'));
+      boton.classList.add('activo');
+      cargarLeads(boton.dataset.filtro);
+    });
+
+    async function cargarLeads(contactado) {
+      const contenedor = document.getElementById('contenedor-leads');
+      contenedor.innerHTML = '<p class="estado-carga">Cargando leads...</p>';
+
+      try {
+        const query = contactado !== '' ? `?contactado=${contactado}` : '';
+        const { leads } = await api.apiFetch(`/admin/leads${query}`);
+
+        if (leads.length === 0) {
+          contenedor.innerHTML = '<p class="estado-vacio">No hay leads para mostrar.</p>';
+          return;
+        }
+
+        contenedor.innerHTML = leads.map((l) => `
+          <div class="item-lead">
+            <div>
+              <h3>${l.nombre}</h3>
+              <p>${l.propiedad_titulo}</p>
+              <p>Tel: ${l.telefono}${l.email ? ' · ' + l.email : ''}</p>
+              ${l.mensaje ? `<p>"${l.mensaje}"</p>` : ''}
+              <p class="fecha">${new Date(l.creado_en).toLocaleString('es-AR')}</p>
+            </div>
+            ${l.contactado
+              ? '<span class="etiqueta-estado estado-publicada">Contactado</span>'
+              : `<button type="button" data-lead-id="${l.id}">Marcar contactado</button>`}
+          </div>
+        `).join('');
+      } catch (error) {
+        contenedor.innerHTML = `<p class="mensaje-error">${error.message}</p>`;
+      }
+    }
+
+    document.getElementById('contenedor-leads').addEventListener('click', async (evento) => {
+      const boton = evento.target.closest('[data-lead-id]');
+      if (!boton) return;
+      boton.disabled = true;
+      try {
+        await api.apiFetch(`/admin/leads/${boton.dataset.leadId}/contactado`, { method: 'PUT' });
+        const filtroActivo = document.querySelector('#filtros button.activo').dataset.filtro;
+        await cargarLeads(filtroActivo);
+      } catch (error) {
+        alert(error.message);
+        boton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

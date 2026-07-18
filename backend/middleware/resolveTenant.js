@@ -1,6 +1,7 @@
 const db = require('../config/db');
+const asyncHandler = require('../lib/asyncHandler');
 
-async function resolveTenant(req, res, next) {
+const resolveTenant = asyncHandler(async (req, res, next) => {
   const [filas] = await db.query('SELECT id, nombre, slug FROM inmobiliarias WHERE slug = ? AND activa = 1', [
     req.params.slug,
   ]);
@@ -9,6 +10,6 @@ async function resolveTenant(req, res, next) {
   }
   req.inmobiliaria = filas[0];
   next();
-}
+});
 
 module.exports = resolveTenant;

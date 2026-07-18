@@ -37,6 +37,7 @@ function pintarBarraAdmin(activo) {
       <span class="barra-admin-marca">Tours 360</span>
       <nav>
         <a href="/admin/propiedades.html" class="${activo === 'propiedades' ? 'activo' : ''}">Propiedades</a>
+        <a href="/admin/leads.html" class="${activo === 'leads' ? 'activo' : ''}">Leads</a>
       </nav>
       <div class="barra-admin-usuario">
         <span>${usuarioGuardado ? usuarioGuardado.nombre : ''}</span>

@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -16,7 +17,7 @@ async function buscarEscenaPropia(escenaId, propiedadId, inmobiliariaId) {
   return filas[0] || null;
 }
 
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const escena = await buscarEscenaPropia(req.params.escenaId, req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!escena) {
     return res.status(404).json({ error: 'No encontramos esa escena' });
@@ -50,9 +51,9 @@ router.post('/', async (req, res) => {
 
   const [hotspots] = await db.query('SELECT * FROM hotspots WHERE id = ?', [resultado.insertId]);
   res.status(201).json({ hotspot: hotspots[0] });
-});
+}));
 
-router.delete('/:hotspotId', async (req, res) => {
+router.delete('/:hotspotId', asyncHandler(async (req, res) => {
   const escena = await buscarEscenaPropia(req.params.escenaId, req.params.propiedadId, req.usuario.inmobiliaria_id);
   if (!escena) {
     return res.status(404).json({ error: 'No encontramos esa escena' });
@@ -66,6 +67,6 @@ router.delete('/:hotspotId', async (req, res) => {
     return res.status(404).json({ error: 'No encontramos ese hotspot' });
   }
   res.status(204).send();
-});
+}));
 
 module.exports = router;

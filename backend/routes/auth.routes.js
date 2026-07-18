@@ -3,11 +3,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../lib/asyncHandler');
 const { camposFaltantes, emailValido } = require('../lib/validar');
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const faltantes = camposFaltantes(req.body, ['email', 'password']);
@@ -43,7 +44,7 @@ router.post('/login', async (req, res) => {
     token,
     usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol },
   });
-});
+}));
 
 router.get('/me', auth, (req, res) => {
   res.json({ usuario: req.usuario });
