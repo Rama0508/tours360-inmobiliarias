@@ -4,6 +4,7 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const storage = require('../lib/storage');
 const asyncHandler = require('../lib/asyncHandler');
+const { optimizarFoto360 } = require('../lib/imagenes');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -69,9 +70,10 @@ router.post('/', (req, res, next) => {
 
       const tour = await obtenerOCrearTour(propiedad.id);
 
-      const storageKey = await storage.upload(req.file.buffer, {
+      const bufferOptimizado = await optimizarFoto360(req.file.buffer);
+      const storageKey = await storage.upload(bufferOptimizado, {
         folder: `propiedades/${propiedad.id}/escenas`,
-        mimetype: req.file.mimetype,
+        mimetype: 'image/jpeg',
       });
 
       const [resultado] = await db.query(

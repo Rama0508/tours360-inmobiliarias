@@ -4,6 +4,7 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const storage = require('../lib/storage');
 const asyncHandler = require('../lib/asyncHandler');
+const { optimizarFotoComun } = require('../lib/imagenes');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -56,9 +57,10 @@ router.post('/', (req, res, next) => {
         return res.status(404).json({ error: 'No encontramos esa propiedad' });
       }
 
-      const storageKey = await storage.upload(req.file.buffer, {
+      const bufferOptimizado = await optimizarFotoComun(req.file.buffer);
+      const storageKey = await storage.upload(bufferOptimizado, {
         folder: `propiedades/${propiedad.id}/fotos`,
-        mimetype: req.file.mimetype,
+        mimetype: 'image/jpeg',
       });
 
       const [resultado] = await db.query(
