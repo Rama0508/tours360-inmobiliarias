@@ -8,6 +8,7 @@ const fotosRoutes = require('./routes/fotos.routes');
 const toursRoutes = require('./routes/tours.routes');
 const escenasRoutes = require('./routes/escenas.routes');
 const hotspotsRoutes = require('./routes/hotspots.routes');
+const publicRoutes = require('./routes/public.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,11 @@ app.use('/api/admin/propiedades/:propiedadId/fotos', fotosRoutes);
 app.use('/api/admin/propiedades/:propiedadId/tour', toursRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas', escenasRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas/:escenaId/hotspots', hotspotsRoutes);
+app.use('/api', publicRoutes);
+
+app.get('/:slug/propiedad/:propiedadSlug', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'public', 'propiedad.html'));
+});
 
 app.get('/health', async (req, res) => {
   try {

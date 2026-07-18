@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propiedad — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <style>
+    body { background: #fff; }
+    .contenedor-publico { max-width: 780px; margin: 0 auto; padding: 0 0 32px; }
+    .encabezado-propiedad { padding: 16px; }
+    .encabezado-propiedad h1 { font-size: 1.3rem; margin: 0 0 4px; }
+    .encabezado-propiedad .precio { font-size: 1.1rem; font-weight: 600; color: var(--color-primario); }
+    .encabezado-propiedad .ubicacion { color: #6b7280; font-size: 0.9rem; margin: 4px 0 0; }
+
+    #visor-360 {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #111;
+    }
+    .selector-ambientes {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      overflow-x: auto;
+    }
+    .selector-ambientes button {
+      width: auto;
+      white-space: nowrap;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      background: #f3f4f6;
+      color: var(--color-texto);
+    }
+    .selector-ambientes button.activo {
+      background: var(--color-primario);
+      color: #fff;
+    }
+
+    .galeria-fotos {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 16px 16px;
+    }
+    .galeria-fotos img {
+      height: 140px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .datos-propiedad {
+      padding: 0 16px 16px;
+    }
+    .grilla-datos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .dato-chip {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .descripcion { font-size: 0.9rem; line-height: 1.5; white-space: pre-line; }
+
+    .form-contacto {
+      margin: 0 16px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 12px;
+    }
+    .form-contacto h2 { font-size: 1.05rem; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="contenedor-publico">
+    <p class="estado-carga" id="estado-carga" style="padding:32px 16px">Cargando propiedad...</p>
+    <div id="contenido" style="display:none">
+      <div id="visor-360"></div>
+      <div class="selector-ambientes" id="selector-ambientes"></div>
+
+      <div class="encabezado-propiedad">
+        <h1 id="titulo-propiedad"></h1>
+        <p class="precio" id="precio-propiedad"></p>
+        <p class="ubicacion" id="ubicacion-propiedad"></p>
+      </div>
+
+      <div class="galeria-fotos" id="galeria-fotos"></div>
+
+      <div class="datos-propiedad">
+        <div class="grilla-datos" id="grilla-datos"></div>
+        <p class="descripcion" id="descripcion-propiedad"></p>
+      </div>
+
+      <div class="form-contacto">
+        <h2>¿Te interesa? Dejanos tus datos</h2>
+        <form id="form-lead">
+          <div class="campo">
+            <label for="nombre">Nombre *</label>
+            <input type="text" id="nombre" required />
+          </div>
+          <div class="campo">
+            <label for="telefono">Teléfono *</label>
+            <input type="tel" id="telefono" required />
+          </div>
+          <div class="campo">
+            <label for="email">Email</label>
+            <input type="email" id="email" />
+          </div>
+          <div class="campo">
+            <label for="mensaje">Mensaje</label>
+            <textarea id="mensaje" rows="3"></textarea>
+          </div>
+          <button type="submit" id="boton-enviar-lead">Enviar consulta</button>
+          <p class="mensaje-error" id="mensaje-error-lead"></p>
+          <p class="mensaje-exito" id="mensaje-exito-lead"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import { crearVisor360 } from '/public/viewer.js';
+
+    const partesRuta = window.location.pathname.split('/').filter(Boolean);
+    const slug = partesRuta[0];
+    const propiedadSlug = partesRuta[2];
+
+    let datos = null;
+    let visor = null;
+
+    async function cargar() {
+      try {
+        const respuesta = await fetch(`/api/${slug}/propiedades/${propiedadSlug}`);
+        const cuerpo = await respuesta.json();
+        if (!respuesta.ok) throw new Error(cuerpo.error || 'No pudimos cargar la propiedad');
+        datos = cuerpo;
+        pintar();
+      } catch (error) {
+        document.getElementById('estado-carga').textContent = error.message;
+      }
+    }
+
+    function pintar() {
+      document.getElementById('estado-carga').style.display = 'none';
+      document.getElementById('contenido').style.display = 'block';
+
+      document.getElementById('titulo-propiedad').textContent = datos.propiedad.titulo;
+      const simbolo = datos.propiedad.moneda === 'USD' ? 'US$' : '$';
+      document.getElementById('precio-propiedad').textContent = datos.propiedad.precio
+        ? `${simbolo} ${Number(datos.propiedad.precio).toLocaleString('es-AR')}`
+        : 'Consultar precio';
+      document.getElementById('ubicacion-propiedad').textContent =
+        [datos.propiedad.localidad, datos.propiedad.provincia].filter(Boolean).join(', ');
+      document.getElementById('descripcion-propiedad').textContent = datos.propiedad.descripcion || '';
+
+      const chips = [];
+      if (datos.propiedad.ambientes) chips.push(`${datos.propiedad.ambientes} ambientes`);
+      if (datos.propiedad.dormitorios) chips.push(`${datos.propiedad.dormitorios} dormitorios`);
+      if (datos.propiedad.banos) chips.push(`${datos.propiedad.banos} baños`);
+      if (datos.propiedad.m2_cubiertos) chips.push(`${datos.propiedad.m2_cubiertos} m² cub.`);
+      if (datos.propiedad.m2_totales) chips.push(`${datos.propiedad.m2_totales} m² tot.`);
+      if (datos.propiedad.cochera) chips.push('Cochera');
+      document.getElementById('grilla-datos').innerHTML = chips.map((c) => `<div class="dato-chip">${c}</div>`).join('');
+
+      document.getElementById('galeria-fotos').innerHTML = datos.fotos.map((f) => `<img src="${f.url}" alt="Foto de la propiedad" />`).join('');
+
+      if (datos.tour && datos.tour.escenas.length > 0) {
+        iniciarVisor();
+      } else {
+        document.getElementById('visor-360').style.display = 'none';
+      }
+    }
+
+    function iniciarVisor() {
+      const contenedor = document.getElementById('visor-360');
+      visor = crearVisor360({ contenedor, onNavegar: irAEscena });
+      pintarSelectorAmbientes();
+      const inicial = datos.tour.escenas.find((e) => e.id === datos.tour.escena_inicial_id) || datos.tour.escenas[0];
+      irAEscena(inicial.id);
+    }
+
+    function pintarSelectorAmbientes() {
+      const contenedor = document.getElementById('selector-ambientes');
+      contenedor.innerHTML = datos.tour.escenas.map((e) => `
+        <button type="button" data-escena-id="${e.id}">${e.nombre}</button>
+      `).join('');
+      contenedor.querySelectorAll('button').forEach((boton) => {
+        boton.addEventListener('click', () => irAEscena(Number(boton.dataset.escenaId)));
+      });
+    }
+
+    function irAEscena(escenaId) {
+      const escena = datos.tour.escenas.find((e) => e.id === escenaId);
+      if (!escena) return;
+      const hotspotsDeEscena = datos.tour.hotspots.filter((h) => h.escena_id === escenaId);
+      visor.irAEscena(escena, hotspotsDeEscena);
+      document.querySelectorAll('.selector-ambientes button').forEach((b) => {
+        b.classList.toggle('activo', Number(b.dataset.escenaId) === escenaId);
+      });
+    }
+
+    document.getElementById('form-lead').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const mensajeError = document.getElementById('mensaje-error-lead');
+      const mensajeExito = document.getElementById('mensaje-exito-lead');
+      const boton = document.getElementById('boton-enviar-lead');
+      mensajeError.textContent = '';
+      mensajeExito.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Enviando...';
+
+      try {
+        const cuerpo = {
+          nombre: document.getElementById('nombre').value.trim(),
+          telefono: document.getElementById('telefono').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          mensaje: document.getElementById('mensaje').value.trim(),
+        };
+        const respuesta = await fetch(`/api/${slug}/propiedades/${propiedadSlug}/leads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cuerpo),
+        });
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) throw new Error(resultado.error || 'No pudimos enviar tu consulta');
+        mensajeExito.textContent = resultado.mensaje;
+        document.getElementById('form-lead').reset();
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Enviar consulta';
+      }
+    });
+
+    cargar();
+  </script>
+</body>
+</html>
