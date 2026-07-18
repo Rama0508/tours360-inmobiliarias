@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar sesión — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+</head>
+<body>
+  <div class="pantalla-centrada">
+    <div class="tarjeta">
+      <h1>Iniciar sesión</h1>
+      <form id="form-login">
+        <div class="campo">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="username" />
+        </div>
+        <div class="campo">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" id="boton-login">Ingresar</button>
+        <p class="mensaje-error" id="mensaje-error"></p>
+        <p class="mensaje-exito" id="mensaje-exito"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script>
+    const form = document.getElementById('form-login');
+    const boton = document.getElementById('boton-login');
+    const mensajeError = document.getElementById('mensaje-error');
+    const mensajeExito = document.getElementById('mensaje-exito');
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      mensajeError.textContent = '';
+      mensajeExito.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Ingresando...';
+
+      try {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        const { token, usuario } = await api.apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+
+        api.setToken(token);
+        mensajeExito.textContent = `¡Bienvenido, ${usuario.nombre}! Sesión iniciada correctamente.`;
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Ingresar';
+      }
+    });
+  </script>
+</body>
+</html>
