@@ -69,9 +69,12 @@ temporal (ngrok) para probar antes.
 
 ## Fase 6 — Mudanza virtual (poner tus muebles dentro de la propiedad)
 
-- [ ] Versión simple: recorte tipo "sticker" de una foto propia, arrastrable
-      y escalable a mano sobre la foto 360. Sin perspectiva real, pero rápido
-      de construir y ya es un diferencial de marketing fuerte.
+- [x] Versión simple: el visitante sube una foto de un mueble propio y
+      queda "pegada" a un punto de la foto 360 actual (se mueve al mirar
+      alrededor, no es un sticker fijo en pantalla), arrastrable y
+      escalable con un slider. Sin perspectiva/escala reales — es una idea
+      aproximada, no una medición precisa. No probado en navegador real
+      (sin esa herramienta disponible), sí verificado por código y regresión.
 - [ ] Versión avanzada (aparte, más adelante): perspectiva y escala reales
       usando estimación de profundidad por IA — este es un proyecto en sí
       mismo, no una tarea chica.
