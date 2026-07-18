@@ -117,6 +117,14 @@
       </button>
     </form>
 
+    <div class="formulario-propiedad" id="seccion-tour" style="display:none;margin-top:20px">
+      <h2 style="margin-top:0;font-size:1.05rem">Tour virtual 360</h2>
+      <p style="color:#6b7280;font-size:0.85rem;margin-top:-8px">
+        Subí las fotos 360 y colocá los puntos de navegación entre ambientes.
+      </p>
+      <a class="boton-enlace" id="enlace-tour-editor" href="#">Abrir editor de tour</a>
+    </div>
+
     <div class="formulario-propiedad" id="seccion-galeria" style="display:none;margin-top:20px">
       <h2 style="margin-top:0;font-size:1.05rem">Galería de fotos</h2>
       <p style="color:#6b7280;font-size:0.85rem;margin-top:-8px">
@@ -153,6 +161,8 @@
         }
         document.getElementById('seccion-galeria').style.display = 'block';
         cargarGaleria();
+        document.getElementById('seccion-tour').style.display = 'block';
+        document.getElementById('enlace-tour-editor').href = `/admin/tour-editor.html?id=${propiedadId}`;
       }
       document.getElementById('estado-carga').style.display = 'none';
       document.getElementById('form-propiedad').style.display = 'block';

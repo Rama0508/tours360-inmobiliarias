@@ -5,6 +5,9 @@ const db = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const propiedadesRoutes = require('./routes/propiedades.routes');
 const fotosRoutes = require('./routes/fotos.routes');
+const toursRoutes = require('./routes/tours.routes');
+const escenasRoutes = require('./routes/escenas.routes');
+const hotspotsRoutes = require('./routes/hotspots.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +19,9 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/propiedades', propiedadesRoutes);
 app.use('/api/admin/propiedades/:propiedadId/fotos', fotosRoutes);
+app.use('/api/admin/propiedades/:propiedadId/tour', toursRoutes);
+app.use('/api/admin/propiedades/:propiedadId/escenas', escenasRoutes);
+app.use('/api/admin/propiedades/:propiedadId/escenas/:escenaId/hotspots', hotspotsRoutes);
 
 app.get('/health', async (req, res) => {
   try {

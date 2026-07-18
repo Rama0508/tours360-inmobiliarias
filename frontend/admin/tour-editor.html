@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editor de tour 360 — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 700px) {
+      .editor-layout { grid-template-columns: 1fr; }
+    }
+    .panel-escenas {
+      background: #fff;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .panel-escenas h2 {
+      font-size: 0.95rem;
+      margin-top: 0;
+    }
+    .lista-escenas-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .item-escena-editor {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: none;
+      text-align: left;
+      width: 100%;
+      font-size: 0.85rem;
+    }
+    .item-escena-editor.activa {
+      border-color: var(--color-primario);
+      background: #eff6ff;
+    }
+    .item-escena-editor img {
+      width: 48px;
+      height: 36px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .item-escena-editor .borrar-escena {
+      margin-left: auto;
+      width: auto;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      background: #dc2626;
+    }
+    .visor-escena {
+      position: relative;
+      background: #111;
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .visor-escena img {
+      width: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+    .marcador-hotspot {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f59e0b;
+      border: 2px solid #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #111;
+    }
+    .ayuda-editor {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin" style="max-width:1100px">
+    <div class="encabezado-pagina">
+      <h1>Editor de tour 360</h1>
+      <a href="/admin/propiedades.html" class="boton-enlace" style="background:#6b7280">Volver al listado</a>
+    </div>
+
+    <p class="estado-carga" id="estado-carga">Cargando tour...</p>
+
+    <div id="editor" style="display:none">
+      <div class="editor-layout">
+        <div class="panel-escenas">
+          <h2>Ambientes</h2>
+          <div class="lista-escenas-editor" id="lista-escenas"></div>
+
+          <form id="form-nueva-escena">
+            <div class="campo">
+              <label for="nombre-escena">Nombre del ambiente</label>
+              <input type="text" id="nombre-escena" placeholder="Ej. Living" required />
+            </div>
+            <div class="campo">
+              <label for="foto-escena">Foto 360 (equirectangular)</label>
+              <input type="file" id="foto-escena" accept="image/jpeg,image/png,image/webp" required />
+            </div>
+            <button type="submit" id="boton-agregar-escena">Agregar ambiente</button>
+          </form>
+          <p class="mensaje-error" id="mensaje-error-escena"></p>
+        </div>
+
+        <div>
+          <div class="visor-escena" id="visor-escena">
+            <p style="color:#9ca3af">Elegí o agregá un ambiente para empezar</p>
+          </div>
+          <p class="ayuda-editor" id="ayuda-editor"></p>
+          <p class="mensaje-error" id="mensaje-error-hotspot"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const propiedadId = params.get('id');
+    let tourActual = null;
+    let escenaSeleccionadaId = null;
+
+    if (!propiedadId) {
+      document.getElementById('estado-carga').textContent = 'Falta indicar la propiedad (parámetro ?id=).';
+    } else if (exigirSesion()) {
+      pintarBarraAdmin('propiedades');
+      cargarTour();
+    }
+
+    async function cargarTour() {
+      try {
+        const { tour } = await api.apiFetch(`/admin/propiedades/${propiedadId}/tour`);
+        tourActual = tour;
+        document.getElementById('estado-carga').style.display = 'none';
+        document.getElementById('editor').style.display = 'block';
+        pintarListaEscenas();
+        if (tour && tour.escenas.length > 0) {
+          seleccionarEscena(escenaSeleccionadaId || tour.escenas[0].id);
+        }
+      } catch (error) {
+        document.getElementById('estado-carga').textContent = error.message;
+      }
+    }
+
+    function pintarListaEscenas() {
+      const contenedor = document.getElementById('lista-escenas');
+      const escenas = tourActual ? tourActual.escenas : [];
+      if (escenas.length === 0) {
+        contenedor.innerHTML = '<p style="color:#6b7280;font-size:0.85rem">Todavía no agregaste ambientes.</p>';
+        return;
+      }
+      contenedor.innerHTML = escenas.map((e) => `
+        <button type="button" class="item-escena-editor ${e.id === escenaSeleccionadaId ? 'activa' : ''}" data-escena-id="${e.id}">
+          <img src="/uploads/${e.storage_key}" />
+          <span>${e.nombre}</span>
+          <span class="borrar-escena" data-borrar-escena="${e.id}">✕</span>
+        </button>
+      `).join('');
+    }
+
+    function seleccionarEscena(escenaId) {
+      escenaSeleccionadaId = escenaId;
+      pintarListaEscenas();
+      pintarVisor();
+    }
+
+    function pintarVisor() {
+      const visor = document.getElementById('visor-escena');
+      const escena = tourActual.escenas.find((e) => e.id === escenaSeleccionadaId);
+      if (!escena) {
+        visor.innerHTML = '<p style="color:#9ca3af">Elegí o agregá un ambiente para empezar</p>';
+        document.getElementById('ayuda-editor').textContent = '';
+        return;
+      }
+
+      const hotspotsDeEscena = tourActual.hotspots.filter((h) => h.escena_id === escena.id);
+
+      visor.innerHTML = `
+        <img src="/uploads/${escena.storage_key}" id="img-escena" />
+        ${hotspotsDeEscena.map((h) => {
+          const left = ((Number(h.yaw) + 180) / 360) * 100;
+          const top = ((90 - Number(h.pitch)) / 180) * 100;
+          const destino = tourActual.escenas.find((e) => e.id === h.escena_destino_id);
+          return `<div class="marcador-hotspot" style="left:${left}%;top:${top}%" data-hotspot-id="${h.id}"
+            title="${h.etiqueta || ''} ${destino ? '→ ' + destino.nombre : ''}">→</div>`;
+        }).join('')}
+      `;
+
+      document.getElementById('ayuda-editor').textContent =
+        'Hacé click sobre la foto para agregar un punto de navegación hacia otro ambiente.';
+
+      document.getElementById('img-escena').addEventListener('click', (evento) => onClickImagen(evento, escena));
+      visor.querySelectorAll('[data-hotspot-id]').forEach((marcador) => {
+        marcador.addEventListener('click', (evento) => {
+          evento.stopPropagation();
+          borrarHotspot(marcador.dataset.hotspotId, escena.id);
+        });
+      });
+    }
+
+    async function onClickImagen(evento, escenaOrigen) {
+      const otrosAmbientes = tourActual.escenas.filter((e) => e.id !== escenaOrigen.id);
+      if (otrosAmbientes.length === 0) {
+        document.getElementById('mensaje-error-hotspot').textContent =
+          'Agregá otro ambiente antes de crear un punto de navegación.';
+        return;
+      }
+
+      const opciones = otrosAmbientes.map((e, i) => `${i + 1}. ${e.nombre}`).join('\n');
+      const eleccion = prompt(`¿A qué ambiente navega este punto?\n${opciones}\n\nEscribí el número:`);
+      const indice = parseInt(eleccion, 10) - 1;
+      if (Number.isNaN(indice) || !otrosAmbientes[indice]) return;
+
+      const etiqueta = prompt('Texto del punto (opcional, ej. "Ir a la cocina"):') || '';
+
+      const img = evento.target;
+      const rect = img.getBoundingClientRect();
+      const offsetX = evento.clientX - rect.left;
+      const offsetY = evento.clientY - rect.top;
+      const yaw = (offsetX / rect.width) * 360 - 180;
+      const pitch = 90 - (offsetY / rect.height) * 180;
+
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/escenas/${escenaOrigen.id}/hotspots`, {
+          method: 'POST',
+          body: JSON.stringify({
+            yaw: Math.round(yaw * 100) / 100,
+            pitch: Math.round(pitch * 100) / 100,
+            escena_destino_id: otrosAmbientes[indice].id,
+            etiqueta,
+          }),
+        });
+        document.getElementById('mensaje-error-hotspot').textContent = '';
+        await cargarTour();
+        seleccionarEscena(escenaOrigen.id);
+      } catch (error) {
+        document.getElementById('mensaje-error-hotspot').textContent = error.message;
+      }
+    }
+
+    async function borrarHotspot(hotspotId, escenaId) {
+      if (!confirm('¿Borrar este punto de navegación?')) return;
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/escenas/${escenaId}/hotspots/${hotspotId}`, {
+          method: 'DELETE',
+        });
+        await cargarTour();
+        seleccionarEscena(escenaId);
+      } catch (error) {
+        document.getElementById('mensaje-error-hotspot').textContent = error.message;
+      }
+    }
+
+    document.getElementById('lista-escenas').addEventListener('click', (evento) => {
+      const borrar = evento.target.closest('[data-borrar-escena]');
+      if (borrar) {
+        evento.stopPropagation();
+        borrarEscena(borrar.dataset.borrarEscena);
+        return;
+      }
+      const item = evento.target.closest('[data-escena-id]');
+      if (item) seleccionarEscena(Number(item.dataset.escenaId));
+    });
+
+    async function borrarEscena(escenaId) {
+      if (!confirm('¿Borrar este ambiente y todos sus puntos de navegación?')) return;
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/escenas/${escenaId}`, { method: 'DELETE' });
+        if (Number(escenaId) === escenaSeleccionadaId) escenaSeleccionadaId = null;
+        await cargarTour();
+      } catch (error) {
+        document.getElementById('mensaje-error-escena').textContent = error.message;
+      }
+    }
+
+    document.getElementById('form-nueva-escena').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const mensajeError = document.getElementById('mensaje-error-escena');
+      const boton = document.getElementById('boton-agregar-escena');
+      mensajeError.textContent = '';
+
+      const archivo = document.getElementById('foto-escena').files[0];
+      const nombre = document.getElementById('nombre-escena').value.trim();
+      if (!archivo || !nombre) {
+        mensajeError.textContent = 'Completá el nombre y elegí una foto';
+        return;
+      }
+
+      boton.disabled = true;
+      boton.textContent = 'Subiendo...';
+      try {
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('foto', archivo);
+        await api.apiFetch(`/admin/propiedades/${propiedadId}/escenas`, { method: 'POST', body: formData });
+        document.getElementById('form-nueva-escena').reset();
+        await cargarTour();
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Agregar ambiente';
+      }
+    });
+  </script>
+</body>
+</html>
