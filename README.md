@@ -34,3 +34,11 @@ Cada inmobiliaria tiene su propio `slug` y todas las URLs públicas van prefijad
 ## Almacenamiento de fotos
 
 Por defecto las fotos se guardan en disco (`backend/uploads/`). Para pasar a Cloudflare R2 más adelante, alcanza con completar `backend/lib/storage.r2.js` y cambiar `STORAGE_DRIVER=r2` en el `.env` — el resto del código no cambia.
+
+## Deploy a producción
+
+Ver [`deploy/DEPLOY.md`](deploy/DEPLOY.md) — VPS Hostinger + Nginx + PM2, el stack habitual del proyecto. Incluye la configuración de Nginx de referencia (`deploy/nginx.conf`) y el archivo de PM2 (`ecosystem.config.js`).
+
+## Roadmap
+
+Ver [`ROADMAP.md`](ROADMAP.md) para el estado de cada fase del proyecto.
