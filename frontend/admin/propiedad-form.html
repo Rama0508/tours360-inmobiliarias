@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propiedad — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin">
+    <div class="encabezado-pagina">
+      <h1 id="titulo-pagina">Nueva propiedad</h1>
+      <a href="/admin/propiedades.html" class="boton-enlace" style="background:#6b7280">Volver al listado</a>
+    </div>
+
+    <p class="estado-carga" id="estado-carga">Cargando propiedad...</p>
+
+    <form id="form-propiedad" class="formulario-propiedad" style="display:none">
+      <div class="grilla-campos">
+        <div class="campo campo-ancho-completo">
+          <label for="titulo">Título *</label>
+          <input type="text" id="titulo" required />
+        </div>
+        <div class="campo campo-ancho-completo">
+          <label for="descripcion">Descripción</label>
+          <textarea id="descripcion" rows="3"></textarea>
+        </div>
+        <div class="campo">
+          <label for="tipo">Tipo *</label>
+          <select id="tipo" required>
+            <option value="casa">Casa</option>
+            <option value="departamento">Departamento</option>
+            <option value="ph">PH</option>
+            <option value="terreno">Terreno</option>
+            <option value="local">Local</option>
+            <option value="oficina">Oficina</option>
+            <option value="galpon">Galpón</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="operacion">Operación *</label>
+          <select id="operacion" required>
+            <option value="venta">Venta</option>
+            <option value="alquiler">Alquiler</option>
+            <option value="alquiler_temporal">Alquiler temporal</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="estado">Estado</label>
+          <select id="estado">
+            <option value="borrador">Borrador</option>
+            <option value="publicada">Publicada</option>
+            <option value="pausada">Pausada</option>
+            <option value="vendida">Vendida</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="precio">Precio</label>
+          <input type="number" id="precio" min="0" step="0.01" />
+        </div>
+        <div class="campo">
+          <label for="moneda">Moneda</label>
+          <select id="moneda">
+            <option value="ARS">ARS</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="m2_cubiertos">m² cubiertos</label>
+          <input type="number" id="m2_cubiertos" min="0" step="0.01" />
+        </div>
+        <div class="campo">
+          <label for="m2_totales">m² totales</label>
+          <input type="number" id="m2_totales" min="0" step="0.01" />
+        </div>
+        <div class="campo">
+          <label for="ambientes">Ambientes</label>
+          <input type="number" id="ambientes" min="0" step="1" />
+        </div>
+        <div class="campo">
+          <label for="dormitorios">Dormitorios</label>
+          <input type="number" id="dormitorios" min="0" step="1" />
+        </div>
+        <div class="campo">
+          <label for="banos">Baños</label>
+          <input type="number" id="banos" min="0" step="1" />
+        </div>
+        <div class="campo">
+          <label for="cochera">
+            <input type="checkbox" id="cochera" style="width:auto" /> Tiene cochera
+          </label>
+        </div>
+        <div class="campo campo-ancho-completo">
+          <label for="direccion">Dirección</label>
+          <input type="text" id="direccion" />
+        </div>
+        <div class="campo">
+          <label for="localidad">Localidad</label>
+          <input type="text" id="localidad" />
+        </div>
+        <div class="campo">
+          <label for="provincia">Provincia</label>
+          <input type="text" id="provincia" />
+        </div>
+      </div>
+
+      <button type="submit" id="boton-guardar" style="margin-top:20px">Guardar propiedad</button>
+      <p class="mensaje-error" id="mensaje-error"></p>
+      <p class="mensaje-exito" id="mensaje-exito"></p>
+
+      <button type="button" id="boton-eliminar" style="margin-top:12px;background:#dc2626;display:none">
+        Eliminar propiedad
+      </button>
+    </form>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    if (exigirSesion()) {
+      pintarBarraAdmin('propiedades');
+      iniciar();
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const propiedadId = params.get('id');
+
+    async function iniciar() {
+      if (propiedadId) {
+        document.getElementById('titulo-pagina').textContent = 'Editar propiedad';
+        document.getElementById('boton-eliminar').style.display = 'block';
+        try {
+          const { propiedad } = await api.apiFetch(`/admin/propiedades/${propiedadId}`);
+          llenarFormulario(propiedad);
+        } catch (error) {
+          document.getElementById('estado-carga').textContent = error.message;
+          return;
+        }
+      }
+      document.getElementById('estado-carga').style.display = 'none';
+      document.getElementById('form-propiedad').style.display = 'block';
+    }
+
+    function llenarFormulario(p) {
+      document.getElementById('titulo').value = p.titulo || '';
+      document.getElementById('descripcion').value = p.descripcion || '';
+      document.getElementById('tipo').value = p.tipo;
+      document.getElementById('operacion').value = p.operacion;
+      document.getElementById('estado').value = p.estado;
+      document.getElementById('precio').value = p.precio ?? '';
+      document.getElementById('moneda').value = p.moneda;
+      document.getElementById('m2_cubiertos').value = p.m2_cubiertos ?? '';
+      document.getElementById('m2_totales').value = p.m2_totales ?? '';
+      document.getElementById('ambientes').value = p.ambientes ?? '';
+      document.getElementById('dormitorios').value = p.dormitorios ?? '';
+      document.getElementById('banos').value = p.banos ?? '';
+      document.getElementById('cochera').checked = !!p.cochera;
+      document.getElementById('direccion').value = p.direccion || '';
+      document.getElementById('localidad').value = p.localidad || '';
+      document.getElementById('provincia').value = p.provincia || '';
+    }
+
+    function leerFormulario() {
+      const num = (id) => {
+        const valor = document.getElementById(id).value;
+        return valor === '' ? null : Number(valor);
+      };
+      return {
+        titulo: document.getElementById('titulo').value.trim(),
+        descripcion: document.getElementById('descripcion').value.trim(),
+        tipo: document.getElementById('tipo').value,
+        operacion: document.getElementById('operacion').value,
+        estado: document.getElementById('estado').value,
+        precio: num('precio'),
+        moneda: document.getElementById('moneda').value,
+        m2_cubiertos: num('m2_cubiertos'),
+        m2_totales: num('m2_totales'),
+        ambientes: num('ambientes'),
+        dormitorios: num('dormitorios'),
+        banos: num('banos'),
+        cochera: document.getElementById('cochera').checked,
+        direccion: document.getElementById('direccion').value.trim(),
+        localidad: document.getElementById('localidad').value.trim(),
+        provincia: document.getElementById('provincia').value.trim(),
+      };
+    }
+
+    document.getElementById('form-propiedad').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const mensajeError = document.getElementById('mensaje-error');
+      const mensajeExito = document.getElementById('mensaje-exito');
+      const boton = document.getElementById('boton-guardar');
+      mensajeError.textContent = '';
+      mensajeExito.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Guardando...';
+
+      try {
+        const datos = leerFormulario();
+        if (propiedadId) {
+          await api.apiFetch(`/admin/propiedades/${propiedadId}`, { method: 'PUT', body: JSON.stringify(datos) });
+        } else {
+          const { propiedad } = await api.apiFetch('/admin/propiedades', { method: 'POST', body: JSON.stringify(datos) });
+          window.location.href = `/admin/propiedad-form.html?id=${propiedad.id}`;
+          return;
+        }
+        mensajeExito.textContent = 'Propiedad guardada correctamente.';
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Guardar propiedad';
+      }
+    });
+
+    document.getElementById('boton-eliminar').addEventListener('click', async () => {
+      if (!confirm('¿Seguro que querés eliminar esta propiedad? No se puede deshacer.')) return;
+      try {
+        await api.apiFetch(`/admin/propiedades/${propiedadId}`, { method: 'DELETE' });
+        window.location.href = '/admin/propiedades.html';
+      } catch (error) {
+        document.getElementById('mensaje-error').textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -50,7 +50,9 @@
         });
 
         api.setToken(token);
-        mensajeExito.textContent = `¡Bienvenido, ${usuario.nombre}! Sesión iniciada correctamente.`;
+        localStorage.setItem('usuario', JSON.stringify(usuario));
+        mensajeExito.textContent = `¡Bienvenido, ${usuario.nombre}! Redirigiendo...`;
+        window.location.href = '/admin/propiedades.html';
       } catch (error) {
         mensajeError.textContent = error.message;
       } finally {

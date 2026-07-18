@@ -1,0 +1,169 @@
+.barra-admin {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.barra-admin-marca {
+  font-weight: 600;
+}
+
+.barra-admin nav {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.barra-admin nav a {
+  color: var(--color-texto);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.barra-admin nav a.activo {
+  color: var(--color-primario);
+  font-weight: 600;
+}
+
+.barra-admin-usuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.barra-admin-usuario button {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.contenido-admin {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.encabezado-pagina {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.encabezado-pagina h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.boton-enlace {
+  display: inline-block;
+  width: auto;
+  padding: 10px 16px;
+  background: var(--color-primario);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.filtros {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filtros button {
+  width: auto;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: var(--color-texto);
+  border: 1px solid var(--color-borde);
+}
+
+.filtros button.activo {
+  background: var(--color-primario);
+  color: #fff;
+  border-color: var(--color-primario);
+}
+
+.lista-propiedades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-propiedad {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--color-borde);
+  text-decoration: none;
+  color: var(--color-texto);
+  flex-wrap: wrap;
+}
+
+.item-propiedad-info h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.item-propiedad-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.etiqueta-estado {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  white-space: nowrap;
+}
+
+.estado-publicada { background: #dcfce7; color: #166534; }
+.estado-borrador { background: #e5e7eb; color: #374151; }
+.estado-pausada { background: #fef3c7; color: #92400e; }
+.estado-vendida { background: #dbeafe; color: #1e40af; }
+
+.formulario-propiedad {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px;
+  border: 1px solid var(--color-borde);
+}
+
+.grilla-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.campo-ancho-completo {
+  grid-column: 1 / -1;
+}
+
+.estado-carga,
+.estado-vacio {
+  text-align: center;
+  color: #6b7280;
+  padding: 32px 16px;
+}
+
+@media (max-width: 600px) {
+  .barra-admin {
+    flex-wrap: wrap;
+  }
+}

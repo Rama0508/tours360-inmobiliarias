@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propiedades — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin">
+    <div class="encabezado-pagina">
+      <h1>Propiedades</h1>
+      <a href="/admin/propiedad-form.html" class="boton-enlace">+ Nueva propiedad</a>
+    </div>
+
+    <div class="filtros" id="filtros">
+      <button type="button" data-estado="" class="activo">Todas</button>
+      <button type="button" data-estado="borrador">Borrador</button>
+      <button type="button" data-estado="publicada">Publicada</button>
+      <button type="button" data-estado="pausada">Pausada</button>
+      <button type="button" data-estado="vendida">Vendida</button>
+    </div>
+
+    <div id="contenedor-lista">
+      <p class="estado-carga">Cargando propiedades...</p>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    if (exigirSesion()) {
+      pintarBarraAdmin('propiedades');
+      cargarPropiedades('');
+    }
+
+    document.getElementById('filtros').addEventListener('click', (evento) => {
+      const boton = evento.target.closest('button[data-estado]');
+      if (!boton) return;
+      document.querySelectorAll('#filtros button').forEach((b) => b.classList.remove('activo'));
+      boton.classList.add('activo');
+      cargarPropiedades(boton.dataset.estado);
+    });
+
+    async function cargarPropiedades(estado) {
+      const contenedor = document.getElementById('contenedor-lista');
+      contenedor.innerHTML = '<p class="estado-carga">Cargando propiedades...</p>';
+
+      try {
+        const query = estado ? `?estado=${encodeURIComponent(estado)}` : '';
+        const { propiedades } = await api.apiFetch(`/admin/propiedades${query}`);
+
+        if (propiedades.length === 0) {
+          contenedor.innerHTML = '<p class="estado-vacio">Todavía no cargaste ninguna propiedad.</p>';
+          return;
+        }
+
+        contenedor.innerHTML = `<div class="lista-propiedades">${propiedades.map((p) => `
+          <a class="item-propiedad" href="/admin/propiedad-form.html?id=${p.id}">
+            <div class="item-propiedad-info">
+              <h3>${p.titulo}</h3>
+              <p>${p.localidad || 'Sin localidad'} · ${formatearPrecio(p.precio, p.moneda)}</p>
+            </div>
+            <span class="etiqueta-estado estado-${p.estado}">${nombreEstado(p.estado)}</span>
+          </a>
+        `).join('')}</div>`;
+      } catch (error) {
+        contenedor.innerHTML = `<p class="mensaje-error">${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
