@@ -28,13 +28,17 @@ detalle etapa por etapa.
 mandar emails a la casilla del dueño de la cuenta — falta verificar un
 dominio propio para poder notificar a cualquier agente/comprador real.
 
-## Fase 3 — Planos y medidas
+## Fase 3 — Planos y medidas ✅ TERMINADA
 
-- [ ] Subida de un plano de la propiedad (imagen).
-- [ ] Marcar cada ambiente sobre el plano (editor similar al de hotspots,
-      pero en 2D sobre el plano en vez de sobre la foto 360).
-- [ ] Reemplazar (o complementar) el selector de ambientes en lista por un
-      plano interactivo clickeable en la página pública.
+- [x] Subida de un plano de la propiedad (tours.plano_storage_key).
+- [x] Marcar cada ambiente sobre el plano (escenas.pos_x_plano/pos_y_plano,
+      editor en tour-editor.html, mismo patrón que los hotspots pero en 2D).
+- [x] Plano interactivo clickeable en la página pública, complementando
+      (no reemplazando) el selector de ambientes en lista.
+
+Las "medidas" (m², ambientes, dormitorios, baños) ya existían desde la fase 1
+a nivel propiedad — esta fase se enfocó en la ubicación visual de cada
+ambiente sobre un plano, no en medidas por ambiente individual.
 
 ## Fase 4 — Infraestructura de negocio (multi-tenant real, vender a muchas inmobiliarias)
 
