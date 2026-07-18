@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const storage = require('../lib/storage');
 const asyncHandler = require('../lib/asyncHandler');
 const { optimizarFoto360 } = require('../lib/imagenes');
+const { obtenerOCrearTour } = require('../lib/tours');
 
 const router = express.Router({ mergeParams: true });
 router.use(auth);
@@ -27,15 +28,6 @@ async function buscarPropiedadPropia(propiedadId, inmobiliariaId) {
     inmobiliariaId,
   ]);
   return filas[0] || null;
-}
-
-async function obtenerOCrearTour(propiedadId) {
-  const [tours] = await db.query('SELECT * FROM tours WHERE propiedad_id = ?', [propiedadId]);
-  if (tours.length > 0) return tours[0];
-
-  const [resultado] = await db.query('INSERT INTO tours (propiedad_id) VALUES (?)', [propiedadId]);
-  const [nuevo] = await db.query('SELECT * FROM tours WHERE id = ?', [resultado.insertId]);
-  return nuevo[0];
 }
 
 // escena_id -> tour_id -> propiedad_id -> inmobiliaria_id, para no confiar en el propiedadId de la URL
@@ -91,6 +83,21 @@ router.post('/', (req, res, next) => {
     })().catch(next);
   });
 });
+
+router.put('/:escenaId/posicion-plano', asyncHandler(async (req, res) => {
+  const escena = await buscarEscenaPropia(req.params.escenaId, req.params.propiedadId, req.usuario.inmobiliaria_id);
+  if (!escena) {
+    return res.status(404).json({ error: 'No encontramos esa escena' });
+  }
+
+  const { pos_x, pos_y } = req.body;
+  if (typeof pos_x !== 'number' || pos_x < 0 || pos_x > 100 || typeof pos_y !== 'number' || pos_y < 0 || pos_y > 100) {
+    return res.status(400).json({ error: 'La posición tiene que ser un porcentaje entre 0 y 100' });
+  }
+
+  await db.query('UPDATE escenas SET pos_x_plano = ?, pos_y_plano = ? WHERE id = ?', [pos_x, pos_y, escena.id]);
+  res.json({ escena: { ...escena, pos_x_plano: pos_x, pos_y_plano: pos_y } });
+}));
 
 router.delete('/:escenaId', asyncHandler(async (req, res) => {
   const escena = await buscarEscenaPropia(req.params.escenaId, req.params.propiedadId, req.usuario.inmobiliaria_id);

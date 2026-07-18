@@ -79,6 +79,7 @@ CREATE TABLE tours (
   tipo ENUM('360', 'modelo3d') NOT NULL DEFAULT '360',
   modelo_url VARCHAR(500) NULL, -- reservado para fase 2 (tours de constructoras)
   escena_inicial_id INT NULL,
+  plano_storage_key VARCHAR(500) NULL, -- imagen del plano de la propiedad (fase 3)
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (propiedad_id) REFERENCES propiedades(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -89,6 +90,8 @@ CREATE TABLE escenas (
   nombre VARCHAR(120) NOT NULL,
   storage_key VARCHAR(500) NOT NULL,
   orden SMALLINT NOT NULL DEFAULT 0,
+  pos_x_plano DECIMAL(5, 2) NULL, -- posición en el plano, 0-100 (% del ancho/alto)
+  pos_y_plano DECIMAL(5, 2) NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

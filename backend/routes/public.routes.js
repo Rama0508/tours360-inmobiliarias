@@ -31,6 +31,7 @@ router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, asyncHandler(asyn
     );
     tour = {
       ...tour,
+      plano_url: tour.plano_storage_key ? storage.getUrl(tour.plano_storage_key) : null,
       escenas: escenas.map((e) => ({ ...e, url: storage.getUrl(e.storage_key) })),
       hotspots,
     };

@@ -30,4 +30,14 @@ async function optimizarLogo(buffer) {
     .toBuffer();
 }
 
-module.exports = { optimizarFotoComun, optimizarFoto360, optimizarLogo };
+// Plano de la propiedad: suele tener texto/medidas, conviene dejarlo más
+// grande que una foto común para que se lea bien.
+async function optimizarPlano(buffer) {
+  return sharp(buffer)
+    .rotate()
+    .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+    .png({ quality: 90 })
+    .toBuffer();
+}
+
+module.exports = { optimizarFotoComun, optimizarFoto360, optimizarLogo, optimizarPlano };
