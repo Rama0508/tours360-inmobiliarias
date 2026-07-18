@@ -13,7 +13,7 @@ giroscopio, pantalla completa, transición estilo Street View), panel de
 leads, manejo centralizado de errores. Ver historial de commits para el
 detalle etapa por etapa.
 
-## Fase 2 — Pulido profesional (que no dé vergüenza mostrarlo a un cliente real)
+## Fase 2 — Pulido profesional (que no dé vergüenza mostrarlo a un cliente real) 🔨 EN CURSO
 
 - [ ] Vista previa al compartir por WhatsApp (meta tags Open Graph: título,
       descripción, imagen de portada) — crítico porque todo el producto se
@@ -62,11 +62,11 @@ detalle etapa por etapa.
       usando estimación de profundidad por IA — este es un proyecto en sí
       mismo, no una tarea chica.
 
-## Fase 7 — Tours 3D/GLB para constructoras (fase 2 original del prompt, pendiente de confirmar si entra en el roadmap)
+## Fase 7 — Tours 3D/GLB para constructoras — QUEDA AFUERA POR AHORA
 
-Explícitamente excluida al arrancar el proyecto. El schema ya tiene los
-campos (`tours.tipo`, `tours.modelo_url`) reservados para esto. A confirmar
-con el usuario si se suma acá o queda para después de vender la fase 1.
+Decisión confirmada: foco en inmobiliarias primero, esto se retoma después
+de vender la fase 1. El schema ya tiene los campos (`tours.tipo`,
+`tours.modelo_url`) reservados para no tener que migrar cuando llegue el momento.
 
 ---
 
