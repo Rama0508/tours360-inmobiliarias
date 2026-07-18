@@ -11,6 +11,60 @@ function yawPitchAVector3(yaw, pitch, radio) {
   );
 }
 
+// Convierte alpha/beta/gamma del sensor de orientación del celular en la
+// rotación de la cámara. Basado en el DeviceOrientationControls clásico de
+// three.js (quitado de las versiones nuevas de la librería).
+function crearControlesGiroscopio(camera) {
+  const zee = new THREE.Vector3(0, 0, 1);
+  const euler = new THREE.Euler();
+  const q0 = new THREE.Quaternion();
+  const qCorreccion = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+
+  let alpha = 0;
+  let beta = 0;
+  let gamma = 0;
+  let orientacionPantalla = 0;
+  let activo = false;
+
+  function onOrientacion(evento) {
+    alpha = evento.alpha ? THREE.MathUtils.degToRad(evento.alpha) : 0;
+    beta = evento.beta ? THREE.MathUtils.degToRad(evento.beta) : 0;
+    gamma = evento.gamma ? THREE.MathUtils.degToRad(evento.gamma) : 0;
+  }
+
+  function onOrientacionPantalla() {
+    orientacionPantalla = THREE.MathUtils.degToRad(window.orientation || 0);
+  }
+
+  async function activar() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const permiso = await DeviceOrientationEvent.requestPermission();
+      if (permiso !== 'granted') return false;
+    }
+    window.addEventListener('deviceorientation', onOrientacion);
+    window.addEventListener('orientationchange', onOrientacionPantalla);
+    onOrientacionPantalla();
+    activo = true;
+    return true;
+  }
+
+  function desactivar() {
+    window.removeEventListener('deviceorientation', onOrientacion);
+    window.removeEventListener('orientationchange', onOrientacionPantalla);
+    activo = false;
+  }
+
+  function actualizarCamara() {
+    if (!activo) return;
+    euler.set(beta, alpha, -gamma, 'YXZ');
+    camera.quaternion.setFromEuler(euler);
+    camera.quaternion.multiply(qCorreccion);
+    camera.quaternion.multiply(q0.setFromAxisAngle(zee, -orientacionPantalla));
+  }
+
+  return { activar, desactivar, actualizarCamara, get activo() { return activo; } };
+}
+
 function crearTexturaFlecha() {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
@@ -34,7 +88,8 @@ function crearTexturaFlecha() {
 export function crearVisor360({ contenedor, onNavegar }) {
   const RADIO_ESFERA = 500;
   let escenaActualId = null;
-  let hotspotsActuales = [];
+
+  contenedor.style.position = 'relative';
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, contenedor.clientWidth / contenedor.clientHeight, 0.1, 1000);
@@ -43,6 +98,70 @@ export function crearVisor360({ contenedor, onNavegar }) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(contenedor.clientWidth, contenedor.clientHeight);
   contenedor.appendChild(renderer.domElement);
+
+  const overlayFade = document.createElement('div');
+  overlayFade.style.cssText =
+    'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;' +
+    'transition:opacity 350ms ease;z-index:2;';
+  contenedor.appendChild(overlayFade);
+
+  const botonFullscreen = document.createElement('button');
+  botonFullscreen.type = 'button';
+  botonFullscreen.textContent = '⛶';
+  botonFullscreen.title = 'Pantalla completa';
+  botonFullscreen.style.cssText =
+    'position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;border:none;' +
+    'border-radius:8px;background:rgba(0,0,0,0.55);color:#fff;font-size:1.2rem;cursor:pointer;';
+  botonFullscreen.addEventListener('click', () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      contenedor.requestFullscreen();
+    }
+  });
+  contenedor.appendChild(botonFullscreen);
+  document.addEventListener('fullscreenchange', () => setTimeout(ajustarTamano, 50));
+
+  const hayEventoOrientacion = typeof window.DeviceOrientationEvent !== 'undefined';
+  const botonGiroscopio = document.createElement('button');
+  botonGiroscopio.type = 'button';
+  botonGiroscopio.textContent = '📱 Mover con el celular';
+  botonGiroscopio.style.cssText =
+    'position:absolute;bottom:12px;left:12px;z-index:3;padding:8px 14px;border:none;' +
+    'border-radius:20px;background:rgba(0,0,0,0.55);color:#fff;font-size:0.8rem;cursor:pointer;' +
+    (hayEventoOrientacion ? '' : 'display:none;');
+  contenedor.appendChild(botonGiroscopio);
+
+  const avisoInicial = document.createElement('div');
+  avisoInicial.textContent = 'Arrastrá o mové el celular para mirar alrededor';
+  avisoInicial.style.cssText =
+    'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;' +
+    'background:rgba(0,0,0,0.6);color:#fff;padding:10px 18px;border-radius:20px;' +
+    'font-size:0.85rem;pointer-events:none;transition:opacity 500ms ease;white-space:nowrap;';
+  contenedor.appendChild(avisoInicial);
+  function ocultarAviso() {
+    avisoInicial.style.opacity = '0';
+  }
+  renderer.domElement.addEventListener('pointerdown', ocultarAviso, { once: true });
+  setTimeout(ocultarAviso, 4000);
+
+  const controlesGiroscopio = crearControlesGiroscopio(camera);
+  botonGiroscopio.addEventListener('click', async () => {
+    if (controlesGiroscopio.activo) {
+      controlesGiroscopio.desactivar();
+      controls.enabled = true;
+      botonGiroscopio.textContent = '📱 Mover con el celular';
+      return;
+    }
+    ocultarAviso();
+    const activado = await controlesGiroscopio.activar();
+    if (activado) {
+      controls.enabled = false;
+      botonGiroscopio.textContent = '🖐 Volver a arrastrar';
+    } else {
+      alert('No pudimos activar el sensor de movimiento. Revisá los permisos de movimiento del navegador.');
+    }
+  });
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableZoom = false;
@@ -64,7 +183,6 @@ export function crearVisor360({ contenedor, onNavegar }) {
 
   function pintarHotspots(hotspots) {
     grupoHotspots.clear();
-    hotspotsActuales = hotspots;
     hotspots.forEach((h) => {
       const material = new THREE.SpriteMaterial({ map: texturaFlecha, depthTest: false });
       const sprite = new THREE.Sprite(material);
@@ -76,14 +194,22 @@ export function crearVisor360({ contenedor, onNavegar }) {
   }
 
   function irAEscena(escena, hotspotsDeEscena) {
+    if (escena.id === escenaActualId) return;
     escenaActualId = escena.id;
-    cargadorTexturas.load(escena.url, (textura) => {
-      textura.colorSpace = THREE.SRGBColorSpace;
-      material.map = textura;
-      material.color.set(0xffffff);
-      material.needsUpdate = true;
-    });
-    pintarHotspots(hotspotsDeEscena);
+
+    overlayFade.style.opacity = '1';
+    setTimeout(() => {
+      cargadorTexturas.load(escena.url, (textura) => {
+        textura.colorSpace = THREE.SRGBColorSpace;
+        material.map = textura;
+        material.color.set(0xffffff);
+        material.needsUpdate = true;
+        pintarHotspots(hotspotsDeEscena);
+        requestAnimationFrame(() => {
+          overlayFade.style.opacity = '0';
+        });
+      });
+    }, 350);
   }
 
   renderer.domElement.addEventListener('click', (evento) => {
@@ -102,7 +228,11 @@ export function crearVisor360({ contenedor, onNavegar }) {
 
   function animar() {
     requestAnimationFrame(animar);
-    controls.update();
+    if (controlesGiroscopio.activo) {
+      controlesGiroscopio.actualizarCamara();
+    } else {
+      controls.update();
+    }
     renderer.render(scene, camera);
   }
   animar();
