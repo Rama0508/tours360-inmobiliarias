@@ -44,6 +44,14 @@
       font-size: 0.8rem;
       color: #6b7280;
       border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nombre-inmobiliaria img {
+      height: 24px;
+      max-width: 120px;
+      object-fit: contain;
     }
     .selector-ambientes {
       display: flex;
@@ -187,7 +195,13 @@
       document.getElementById('estado-carga').style.display = 'none';
       document.getElementById('contenido').style.display = 'block';
 
-      document.getElementById('nombre-inmobiliaria').textContent = `Publicado por ${datos.inmobiliaria.nombre}`;
+      if (datos.inmobiliaria.color_primario) {
+        document.documentElement.style.setProperty('--color-primario', datos.inmobiliaria.color_primario);
+      }
+      const nombreInmobiliaria = document.getElementById('nombre-inmobiliaria');
+      nombreInmobiliaria.innerHTML = datos.inmobiliaria.logo_url
+        ? `<img src="${datos.inmobiliaria.logo_url}" alt="${datos.inmobiliaria.nombre}" /> Publicado por ${datos.inmobiliaria.nombre}`
+        : `Publicado por ${datos.inmobiliaria.nombre}`;
       document.getElementById('titulo-propiedad').textContent = datos.propiedad.titulo;
       const simbolo = datos.propiedad.moneda === 'USD' ? 'US$' : '$';
       document.getElementById('precio-propiedad').textContent = datos.propiedad.precio

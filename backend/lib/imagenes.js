@@ -20,4 +20,14 @@ async function optimizarFoto360(buffer) {
     .toBuffer();
 }
 
-module.exports = { optimizarFotoComun, optimizarFoto360 };
+// Logo de la inmobiliaria: se mantiene como PNG (no se convierte a JPEG)
+// porque suele tener fondo transparente.
+async function optimizarLogo(buffer) {
+  return sharp(buffer)
+    .rotate()
+    .resize({ width: 400, height: 400, fit: 'inside', withoutEnlargement: true })
+    .png({ quality: 90 })
+    .toBuffer();
+}
+
+module.exports = { optimizarFotoComun, optimizarFoto360, optimizarLogo };

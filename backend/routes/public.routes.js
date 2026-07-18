@@ -36,7 +36,11 @@ router.get('/:slug/propiedades/:propiedadSlug', resolveTenant, asyncHandler(asyn
   }
 
   res.json({
-    inmobiliaria: { nombre: req.inmobiliaria.nombre },
+    inmobiliaria: {
+      nombre: req.inmobiliaria.nombre,
+      logo_url: req.inmobiliaria.logo_url,
+      color_primario: req.inmobiliaria.color_primario,
+    },
     propiedad,
     fotos: fotos.map((f) => ({ id: f.id, url: storage.getUrl(f.storage_key) })),
     tour,

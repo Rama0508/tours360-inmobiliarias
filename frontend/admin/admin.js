@@ -38,6 +38,7 @@ function pintarBarraAdmin(activo) {
       <nav>
         <a href="/admin/propiedades.html" class="${activo === 'propiedades' ? 'activo' : ''}">Propiedades</a>
         <a href="/admin/leads.html" class="${activo === 'leads' ? 'activo' : ''}">Leads</a>
+        <a href="/admin/inmobiliaria.html" class="${activo === 'inmobiliaria' ? 'activo' : ''}">Mi inmobiliaria</a>
       </nav>
       <div class="barra-admin-usuario">
         <span>${usuarioGuardado ? usuarioGuardado.nombre : ''}</span>

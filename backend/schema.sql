@@ -12,6 +12,8 @@ CREATE TABLE inmobiliarias (
   slug VARCHAR(60) NOT NULL UNIQUE,
   email_contacto VARCHAR(150),
   telefono VARCHAR(30),
+  logo_url VARCHAR(500) NULL,
+  color_primario VARCHAR(7) NULL, -- ej. #1d4ed8, se usa como acento de marca en la página pública
   activa TINYINT(1) NOT NULL DEFAULT 1,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;

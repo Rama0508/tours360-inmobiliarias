@@ -11,6 +11,7 @@ const escenasRoutes = require('./routes/escenas.routes');
 const hotspotsRoutes = require('./routes/hotspots.routes');
 const publicRoutes = require('./routes/public.routes');
 const leadsRoutes = require('./routes/leads.routes');
+const inmobiliariaRoutes = require('./routes/inmobiliaria.routes');
 const errorHandler = require('./middleware/errorHandler');
 const asyncHandler = require('./lib/asyncHandler');
 const { buscarInmobiliariaPorSlug, buscarPropiedadPublicada, obtenerUrlPortada } = require('./lib/propiedadPublica');
@@ -33,6 +34,7 @@ app.use('/api/admin/propiedades/:propiedadId/tour', toursRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas', escenasRoutes);
 app.use('/api/admin/propiedades/:propiedadId/escenas/:escenaId/hotspots', hotspotsRoutes);
 app.use('/api/admin/leads', leadsRoutes);
+app.use('/api/admin/inmobiliaria', inmobiliariaRoutes);
 app.use('/api', publicRoutes);
 
 const RUTA_PLANTILLA_PROPIEDAD = path.join(__dirname, '..', 'frontend', 'public', 'propiedad.html');

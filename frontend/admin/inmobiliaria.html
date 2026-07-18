@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi inmobiliaria — Tours 360</title>
+  <link rel="stylesheet" href="/shared/estilos.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    .fila-logo { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .fila-logo img { height: 60px; max-width: 160px; object-fit: contain; background: #f9fafb; border-radius: 8px; padding: 8px; }
+    .fila-logo .sin-logo { height: 60px; width: 120px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.75rem; }
+    input[type="color"] { padding: 4px; height: 44px; cursor: pointer; }
+    .aviso-solo-lectura { background: #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div id="barra-admin"></div>
+
+  <div class="contenido-admin">
+    <div class="encabezado-pagina">
+      <h1>Mi inmobiliaria</h1>
+    </div>
+
+    <p class="estado-carga" id="estado-carga">Cargando...</p>
+
+    <div id="contenido" style="display:none">
+      <p class="aviso-solo-lectura" id="aviso-solo-lectura" style="display:none">
+        Solo un administrador de la inmobiliaria puede editar estos datos. Podés ver la configuración actual.
+      </p>
+
+      <div class="formulario-propiedad">
+        <h2 style="margin-top:0;font-size:1.05rem">Logo</h2>
+        <div class="fila-logo">
+          <div id="vista-logo"><div class="sin-logo">Sin logo</div></div>
+          <div>
+            <input type="file" id="input-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+            <button type="button" id="boton-subir-logo" style="margin-top:8px;width:auto;padding:8px 16px">Subir logo</button>
+          </div>
+        </div>
+        <p class="mensaje-error" id="mensaje-error-logo"></p>
+
+        <h2 style="font-size:1.05rem">Datos y color de marca</h2>
+        <form id="form-inmobiliaria">
+          <div class="grilla-campos">
+            <div class="campo campo-ancho-completo">
+              <label for="nombre">Nombre de la inmobiliaria *</label>
+              <input type="text" id="nombre" required />
+            </div>
+            <div class="campo">
+              <label for="email_contacto">Email de contacto</label>
+              <input type="email" id="email_contacto" />
+            </div>
+            <div class="campo">
+              <label for="telefono">Teléfono</label>
+              <input type="text" id="telefono" />
+            </div>
+            <div class="campo">
+              <label for="color_primario">Color de marca</label>
+              <input type="color" id="color_primario" value="#1d4ed8" />
+            </div>
+          </div>
+          <button type="submit" id="boton-guardar" style="margin-top:20px">Guardar cambios</button>
+          <p class="mensaje-error" id="mensaje-error"></p>
+          <p class="mensaje-exito" id="mensaje-exito"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/shared/api.js"></script>
+  <script src="/admin/admin.js"></script>
+  <script>
+    const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+    const esAdmin = usuario && usuario.rol === 'admin';
+
+    if (exigirSesion()) {
+      pintarBarraAdmin('inmobiliaria');
+      cargar();
+    }
+
+    function pintarLogo(logoUrl) {
+      document.getElementById('vista-logo').innerHTML = logoUrl
+        ? `<img src="${logoUrl}" alt="Logo" />`
+        : '<div class="sin-logo">Sin logo</div>';
+    }
+
+    async function cargar() {
+      try {
+        const { inmobiliaria } = await api.apiFetch('/admin/inmobiliaria');
+        document.getElementById('nombre').value = inmobiliaria.nombre || '';
+        document.getElementById('email_contacto').value = inmobiliaria.email_contacto || '';
+        document.getElementById('telefono').value = inmobiliaria.telefono || '';
+        document.getElementById('color_primario').value = inmobiliaria.color_primario || '#1d4ed8';
+        pintarLogo(inmobiliaria.logo_url);
+
+        if (!esAdmin) {
+          document.getElementById('aviso-solo-lectura').style.display = 'block';
+          document.querySelectorAll('#form-inmobiliaria input, #form-inmobiliaria button').forEach((el) => el.disabled = true);
+          document.getElementById('input-logo').disabled = true;
+          document.getElementById('boton-subir-logo').disabled = true;
+        }
+
+        document.getElementById('estado-carga').style.display = 'none';
+        document.getElementById('contenido').style.display = 'block';
+      } catch (error) {
+        document.getElementById('estado-carga').textContent = error.message;
+      }
+    }
+
+    document.getElementById('form-inmobiliaria').addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      const mensajeError = document.getElementById('mensaje-error');
+      const mensajeExito = document.getElementById('mensaje-exito');
+      const boton = document.getElementById('boton-guardar');
+      mensajeError.textContent = '';
+      mensajeExito.textContent = '';
+      boton.disabled = true;
+      boton.textContent = 'Guardando...';
+
+      try {
+        await api.apiFetch('/admin/inmobiliaria', {
+          method: 'PUT',
+          body: JSON.stringify({
+            nombre: document.getElementById('nombre').value.trim(),
+            email_contacto: document.getElementById('email_contacto').value.trim(),
+            telefono: document.getElementById('telefono').value.trim(),
+            color_primario: document.getElementById('color_primario').value,
+          }),
+        });
+        mensajeExito.textContent = 'Cambios guardados correctamente.';
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Guardar cambios';
+      }
+    });
+
+    document.getElementById('boton-subir-logo').addEventListener('click', async () => {
+      const input = document.getElementById('input-logo');
+      const mensajeError = document.getElementById('mensaje-error-logo');
+      mensajeError.textContent = '';
+
+      if (!input.files[0]) {
+        mensajeError.textContent = 'Elegí una imagen primero';
+        return;
+      }
+
+      const boton = document.getElementById('boton-subir-logo');
+      boton.disabled = true;
+      boton.textContent = 'Subiendo...';
+      try {
+        const formData = new FormData();
+        formData.append('logo', input.files[0]);
+        const { logo_url } = await api.apiFetch('/admin/inmobiliaria/logo', { method: 'POST', body: formData });
+        pintarLogo(logo_url);
+        input.value = '';
+      } catch (error) {
+        mensajeError.textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Subir logo';
+      }
+    });
+  </script>
+</body>
+</html>
